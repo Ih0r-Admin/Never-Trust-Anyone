@@ -9,13 +9,17 @@
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-black">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
+        // Pull React hooks from the global object instead of importing them
         const { useState, useEffect, useRef, useCallback } = React;
+        
+        // Import all icons perfectly from a CDN
         import { Shield, Eye, Lock, Globe, AlertTriangle, Fingerprint, Terminal, X, Check, Server, Search, Moon, Zap, Briefcase, DollarSign, FileText, Upload, Camera, Network, Cloud } from 'https://esm.sh/lucide-react@0.292.0';
 
         // --- UTILS ---
@@ -424,7 +428,7 @@
 
           return (
             <div 
-              className={`fixed cursor-pointer w-28 h-28 sm:w-36 sm:h-36 filter drop-shadow-2xl z-[9000] transition-transform ${mood === 'angry' ? 'brightness-90 contrast-125' : ''}`}
+              className={`fixed cursor-pointer w-28 h-28 sm:w-36 sm:h-36 filter drop-shadow-2xl z-50 transition-transform ${mood === 'angry' ? 'brightness-90 contrast-125' : ''}`}
               style={{ left: `${pos.x}%`, top: `${pos.y}%`, transition: getTransition(), transform: `translate(-50%, -50%) scale(${scale})` }}
               onClick={handleInteraction}
             >
