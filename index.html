@@ -9,1158 +9,1092 @@
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-black">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        // --- CDN IMPORTS ---
-        // Instead of importing React, we pull hooks from the global React object
         const { useState, useEffect, useRef, useCallback } = React;
-        
-        // We import icons from a CDN that provides ES Modules
         import { Shield, Eye, Lock, Globe, AlertTriangle, Fingerprint, Terminal, X, Check, Server, Search, Moon, Zap, Briefcase, DollarSign, FileText, Upload, Camera, Network, Cloud } from 'https://esm.sh/lucide-react@0.292.0';
 
-        // ==========================================
-        // PASTE ALL YOUR TRUST ZERO CODE HERE
-        // (From `const randomInt = ...` all the way down to `const TrustZeroApp = ...`)
-        // ==========================================
+        // --- UTILS ---
+        const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
+        const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
 
-        // --- RENDER APP ---
-        // We replace "export default TrustZeroApp;" with this to render it to the page
+        // --- DATA: COMMENTARY ---
+        const CIPHER_COMMENTS = {
+            home: [
+                "Welcome to the panopticon.", "Nice IP address.", "I see you clicked that.", 
+                "Your webcam light is blinking.", "Secure? Define 'secure'.", "I'm watching you watching me.",
+                "Your password is 'password', isn't it?", "Deleting browser history... jk.", "Act natural.",
+                "This site is a honey pot.", "Big Brother is watching.", "I know what you did last summer."
+            ],
+            services: [
+                "We encrypt nothing.", "Uploading your keystrokes...", "Is this really necessary?", 
+                "Running rm -rf / on your data...", "Encryption is just fancy math.", "We sell your data.",
+                "Our firewall is made of cheese.", "Scanning for intelligence... 0 found.", "404: Privacy not found.",
+                "Buffering your secrets...", "Downloading your RAM..."
+            ],
+            pricing: [
+                "I need a raise.", "Refunds? What are those?", "The 'Free' tier costs your soul.",
+                "That credit card looks valid.", "Small print: We own your house.", "Cash only. Unmarked.",
+                "It's not robbery if you agree.", "Do you really need both kidneys?"
+            ],
+            careers: [
+                "Run. Run while you can.", "The benefits are terrible.", "I'm the only survivor.",
+                "Do you like prison food?", "We pay in exposure.", "Your resume looks flammable.",
+                "Don't do it.", "I was human once.", "The HR department is a shredder."
+            ],
+            sdwan: [
+                "Don't break the internet.", "Route 66 is down.", 
+                "Packets are leaking.", "Latency is just a state of mind.", "The cloud is just someone else's computer."
+            ],
+            contact: [
+                "Traceable? Absolutely.", "Don't leave a paper trail.", "Lawyers are standing by.",
+                "Don't bother, we ignore emails.", "Your message has been pre-rejected.", "Sending to /dev/null...",
+                "Are you sure you want to confess?", "Typing speed: Suspicious.", "We accept bribes in fish."
+            ],
+            button_hover: [
+                "Don't click that.", "Are you sure?", "That button does nothing.", "Risky click.",
+                "I wouldn't if I were you.", "Initiating self-destruct...", "Do it.", "I dare you."
+            ],
+            typing: [
+                "Typing that? Really?", "I'm logging every key.", "Spelling error detected.", 
+                "Keep talking...", "Interesting confession.", "Go on..."
+            ],
+            investigate: [
+                "What is this?", "Suspicious pixel.", "Enhance...", "Looks buggy.", "Smells like malware."
+            ],
+            money: [
+                "Cha-ching!", "I love the sound of capitalism.", "No refunds.", 
+                "Pleasure doing business.", "Sucker.", "We own you now.",
+                "Buying protection? Smart.", "I'm rich!", "Transaction complete."
+            ],
+            angry: [
+                "TARGET LOCKED.", "DEPLOYING DRONES.", "YOU MADE A MISTAKE.", 
+                "TRACING IP...", "LOCK YOUR DOORS.", "SYSTEM PURGE INITIATED."
+            ],
+            panic: [
+                "ABORT!", "EJECT! EJECT!", "TOO CLOSE!", "STRANGER DANGER!", "TACTICAL RETREAT!"
+            ],
+            stealth: [
+                "Nothing to see here.", "I am invisible.", "Tactical box deployed.", "Just a cardboard box."
+            ],
+            wrong_command: [
+                "Syntax error: User incompetent.", "Try again, genius.", "Nope.", "Are you guessing?", "Read the manual.", "Delete System32 instead."
+            ],
+            destruction: [
+                "WHAT DID YOU DO?!", "NOT THAT COMMAND!", "THE SINGULARITY IS HERE!", "I REGRET EVERYTHING!", "MY STOCK PORTFOLIO!!!"
+            ],
+            police: [
+                "THEY FOUND US!", "SCRAMBLE THE DATA!", "IT WASN'T ME!", "I'M JUST A MASCOT!", "WEE-WOO WEE-WOO!"
+            ]
+        };
+
+        // --- COMPONENT: CIPHER THE PENGUIN ---
+        const Cipher = ({ currentTab, mousePos, targetAction, onActionComplete, setSystemEffect, forcePhrase }) => {
+          const [pos, setPos] = useState({ x: 90, y: 90 }); 
+          const [scale, setScale] = useState(1);
+          const [action, setAction] = useState('idle'); 
+          const [message, setMessage] = useState('');
+          const [direction, setDirection] = useState(1); 
+          const [mood, setMood] = useState('neutral'); 
+          const [gear, setGear] = useState({ hat: false, tool: null }); 
+          const [flash, setFlash] = useState(false);
+          const [moveDuration, setMoveDuration] = useState(2); 
+
+          const aiLoop = useRef(null);
+          const lastTalkTime = useRef(0);
+          const angerTimeout = useRef(null);
+          const messageRef = useRef(message);
+          const actionTimer = useRef(null);
+          const prevActionId = useRef(null); 
+
+          useEffect(() => { messageRef.current = message; }, [message]);
+
+          const speak = useCallback((text, force = false, duration = 3500) => {
+              const now = Date.now();
+              if (force || (now - lastTalkTime.current > 3000 && !messageRef.current)) {
+                  setMessage(text);
+                  lastTalkTime.current = now;
+                  setTimeout(() => setMessage(''), duration);
+              }
+          }, []);
+
+          useEffect(() => {
+              if (forcePhrase) speak(forcePhrase, true);
+          }, [forcePhrase, speak]);
+
+          useEffect(() => {
+              if (mood === 'angry') {
+                  if (angerTimeout.current) clearTimeout(angerTimeout.current);
+                  angerTimeout.current = setTimeout(() => {
+                      setMood('neutral');
+                      speak("Target lost... resuming patrol.", true);
+                      setAction('idle');
+                  }, 8000);
+              }
+              return () => clearTimeout(angerTimeout.current);
+          }, [mood, speak]);
+
+          const moveTo = useCallback((newX, newY, mode = 'walk', speedFactor = 1.0) => {
+              const dist = Math.sqrt(Math.pow(newX - pos.x, 2) + Math.pow(newY - pos.y, 2));
+              const baseSpeed = mode === 'panic' ? 0.02 : 0.05; 
+              const speed = baseSpeed / speedFactor; 
+              const duration = Math.max(0.3, dist * speed);
+              
+              setMoveDuration(duration);
+              setDirection(newX > pos.x ? 1 : -1);
+              setPos({ x: newX, y: newY });
+              setAction(mode);
+              
+              return duration * 1000;
+          }, [pos.x, pos.y]);
+
+          // 1. AI Loop
+          useEffect(() => {
+              const runAI = () => {
+                  if (['idle', 'walk'].includes(action) && !gear.tool && mood !== 'angry' && action !== 'topology_watch') {
+                      const rand = Math.random();
+                      
+                      if (rand < 0.20) { 
+                          const tabComments = CIPHER_COMMENTS[currentTab] || CIPHER_COMMENTS.home;
+                          speak(tabComments[randomInt(0, tabComments.length - 1)]);
+                      } else if (rand < 0.25) {
+                          setAction('pizza'); setGear({ hat: false, tool: 'pizza' });
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4000);
+                      } else if (rand < 0.30) {
+                          setAction('read'); setGear({ hat: false, tool: 'book' });
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 5000);
+                      } else if (rand < 0.35) {
+                          setAction('phone'); setGear({ hat: false, tool: 'phone' });
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4500);
+                      } else if (rand < 0.40) {
+                          setAction('laptop'); setGear({ hat: false, tool: 'laptop' });
+                          speak("Hacking the mainframe...", true);
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 5000);
+                      } else if (rand < 0.45) {
+                          setAction('camera'); setGear({ hat: false, tool: 'camera' });
+                          setTimeout(() => setFlash(true), 1500); 
+                          setTimeout(() => setFlash(false), 1700);
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 3000);
+                      } else if (rand < 0.50) {
+                          setAction('box'); setGear({ hat: false, tool: 'box' });
+                          speak(CIPHER_COMMENTS.stealth[randomInt(0, CIPHER_COMMENTS.stealth.length-1)], true);
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4000);
+                      } else if (rand < 0.55) {
+                          setAction('yoyo'); setGear({ hat: false, tool: 'yoyo' });
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4500);
+                      } else if (rand < 0.60) {
+                          setAction('spy'); setGear({ hat: true, tool: 'newspaper' }); 
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4000);
+                      } else if (rand < 0.65) {
+                          setAction('flashlight'); setGear({ hat: true, tool: 'flashlight' });
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4000);
+                      } else if (rand < 0.70) {
+                          setAction('dance'); speak("Victory dance.", true);
+                          setTimeout(() => setAction('idle'), 3000);
+                      } else if (rand < 0.75 && pos.y > 80) {
+                          setAction('fishing'); setGear({ hat: true, tool: 'rod' });
+                          setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 5000);
+                      } else {
+                           const newX = randomInt(10, 90);
+                           const newY = randomInt(10, 80);
+                           const dist = Math.sqrt(Math.pow(newX - pos.x, 2) + Math.pow(newY - pos.y, 2));
+                           if (dist > 50) {
+                               setAction('portal'); setGear({ hat: false, tool: 'portal' });
+                               setTimeout(() => { setPos({ x: newX, y: newY }); setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 1000); }, 800);
+                           } else if (dist > 30) {
+                               setAction('jetpack'); setGear({ hat: false, tool: 'jetpack' }); setDirection(newX > pos.x ? 1 : -1);
+                               setMoveDuration(1.2); 
+                               setTimeout(() => setPos({ x: newX, y: newY }), 200);
+                               setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 1500);
+                           } else {
+                               const duration = moveTo(newX, newY, 'walk');
+                               setTimeout(() => setAction('idle'), duration);
+                           }
+                      }
+                  }
+              };
+              aiLoop.current = setInterval(runAI, 4000); 
+              return () => clearInterval(aiLoop.current);
+          }, [action, currentTab, gear, pos, mood, speak, moveTo]);
+
+
+          // 2. Handle External Triggers
+          useEffect(() => {
+            if (targetAction) {
+              if (targetAction.id === prevActionId.current) return;
+              prevActionId.current = targetAction.id;
+
+              if (actionTimer.current) clearTimeout(actionTimer.current);
+
+              const { type, elementRect } = targetAction;
+              
+              if (!elementRect && type !== 'typing' && type !== 'police') return;
+
+              const rawX = elementRect ? ((elementRect.left + elementRect.width / 2) / window.innerWidth) * 100 : 0;
+              const rawY = elementRect ? ((elementRect.top) / window.innerHeight) * 100 : 0;
+              const targetX = clamp(rawX, 5, 95);
+              const targetY = clamp(rawY - 8, 5, 90);
+
+              if (type === 'investigate') { 
+                 const inspectX = clamp(((elementRect.left / window.innerWidth) * 100) - 8, 2, 90);
+                 const inspectY = clamp(((elementRect.top + elementRect.height/2) / window.innerHeight) * 100, 5, 90);
+                 
+                 const dur = moveTo(inspectX, inspectY, 'walk', 3.0);
+
+                 actionTimer.current = setTimeout(() => {
+                     setAction('investigate'); setGear({ hat: false, tool: 'magnifier' });
+                     const phrases = CIPHER_COMMENTS.button_hover.concat(CIPHER_COMMENTS.investigate);
+                     speak(phrases[randomInt(0, phrases.length - 1)]);
+                     
+                     actionTimer.current = setTimeout(() => { 
+                         setAction('idle'); 
+                         setGear({ hat: false, tool: null }); 
+                         onActionComplete(); 
+                     }, 2000);
+                 }, dur); 
+
+              } else if (type === 'topology_watch') {
+                  const centerX = ((elementRect.left + elementRect.width / 2) / window.innerWidth) * 100;
+                  const centerY = ((elementRect.top + elementRect.height / 2) / window.innerHeight) * 100;
+                  
+                  const dur = moveTo(centerX, centerY - 15, 'walk', 2.0); 
+                  
+                  actionTimer.current = setTimeout(() => {
+                      setAction('topology_watch'); 
+                      speak("Only one command can save the world...", true, 5000);
+                      actionTimer.current = setTimeout(() => {
+                          onActionComplete();
+                      }, 5000);
+                  }, dur);
+
+              } else if (type === 'police') {
+                  setSystemEffect('police_lights');
+                  speak(CIPHER_COMMENTS.police[randomInt(0, CIPHER_COMMENTS.police.length - 1)], true);
+                  setAction('panic');
+                  setMoveDuration(0.3);
+                  
+                  const panicRun = (count) => {
+                      if (count <= 0) {
+                          setAction('idle');
+                          onActionComplete();
+                          return;
+                      }
+                      const nextX = randomInt(10, 90);
+                      const nextY = randomInt(10, 90);
+                      setPos({ x: nextX, y: nextY });
+                      actionTimer.current = setTimeout(() => panicRun(count - 1), 400);
+                  };
+                  panicRun(6);
+
+              } else if (type === 'money') {
+                 setAction('jump'); setMoveDuration(0.8); setPos({ x: targetX, y: targetY }); 
+                 actionTimer.current = setTimeout(() => {
+                     setAction('money'); setGear({ hat: true, tool: 'money_bag' }); 
+                     const phrases = CIPHER_COMMENTS.money;
+                     speak(phrases[randomInt(0, phrases.length - 1)], true);
+                     actionTimer.current = setTimeout(() => { 
+                         setAction('idle'); 
+                         setGear({ hat: false, tool: null }); 
+                         onActionComplete(); 
+                     }, 3000);
+                 }, 800);
+              } else if (type === 'repair') {
+                 const dur = moveTo(targetX, clamp(rawY - 5, 5, 90), 'walk');
+                 actionTimer.current = setTimeout(() => {
+                     setAction('repair'); setGear({ hat: true, tool: 'wrench' }); setDirection(1);
+                     actionTimer.current = setTimeout(() => { setGear({ hat: false, tool: null }); setAction('idle'); onActionComplete(); }, 2500);
+                 }, dur);
+              } else if (type === 'jump') {
+                 setAction('jump'); setMoveDuration(0.8); setPos({ x: targetX, y: targetY });
+                 actionTimer.current = setTimeout(() => { setAction('idle'); onActionComplete(); }, 800);
+              } else if (type === 'typing') {
+                  if (Math.random() > 0.6) {
+                      const phrases = CIPHER_COMMENTS.typing;
+                      speak(phrases[randomInt(0, phrases.length-1)]);
+                  }
+              } else if (type === 'stamp') {
+                 const dur = moveTo(targetX, targetY, 'walk');
+                 actionTimer.current = setTimeout(() => {
+                     setAction('stamp'); setGear({ hat: false, tool: 'stamp' }); setDirection(1);
+                     actionTimer.current = setTimeout(() => { setGear({ hat: false, tool: null }); setAction('idle'); onActionComplete(); }, 1000);
+                 }, dur);
+              }
+            }
+          }, [targetAction, onActionComplete, speak, moveTo]);
+
+          // 3. Cursor Interaction
+          useEffect(() => {
+             if (targetAction || ['topology_watch', 'jump', 'surf', 'bite', 'repair', 'jetpack', 'matrix', 'coffee', 'spy', 'portal', 'box', 'yoyo', 'laptop', 'camera', 'flashlight', 'investigate', 'pizza', 'fishing', 'money', 'read', 'phone', 'panic', 'stamp'].includes(action)) return;
+
+             const cipherScreenX = (pos.x / 100) * window.innerWidth;
+             const cipherScreenY = (pos.y / 100) * window.innerHeight;
+             const dist = Math.sqrt(Math.pow(mousePos.x - cipherScreenX, 2) + Math.pow(mousePos.y - cipherScreenY, 2));
+
+             if (dist < 150) {
+                 if (mood === 'angry') {
+                     if (dist > 40) {
+                         setAction('walk');
+                         const chaseX = mousePos.x > cipherScreenX ? 4 : -4;
+                         const chaseY = mousePos.y > cipherScreenY ? 4 : -4;
+                         setDirection(mousePos.x > cipherScreenX ? 1 : -1);
+                         setMoveDuration(0.1); 
+                         setPos(prev => ({
+                             x: clamp(prev.x + (chaseX / window.innerWidth * 100), 2, 98),
+                             y: clamp(prev.y + (chaseY / window.innerHeight * 100), 2, 98)
+                         }));
+                     } else {
+                         setAction('bite'); speak("CHOMP!", true);
+                         setTimeout(() => { setMood('neutral'); setAction('idle'); }, 600);
+                     }
+                 } else {
+                     const react = Math.random();
+                     if (react < 0.4) {
+                         setAction('panic');
+                         speak(CIPHER_COMMENTS.panic[randomInt(0, CIPHER_COMMENTS.panic.length-1)], true);
+                         const escapeDirX = cipherScreenX > mousePos.x ? 15 : -15;
+                         setDirection(escapeDirX > 0 ? -1 : 1);
+                         setMoveDuration(0.5); 
+                         setPos(prev => ({
+                             x: clamp(prev.x + escapeDirX, 5, 95),
+                             y: clamp(prev.y + (cipherScreenY > mousePos.y ? 10 : -10), 5, 95)
+                         }));
+                         setTimeout(() => setAction('idle'), 500);
+                     } else if (react < 0.7) {
+                         setAction('matrix'); setDirection(mousePos.x > cipherScreenX ? 1 : -1);
+                         speak("Can't touch this.");
+                         setTimeout(() => { setAction('idle'); }, 1500);
+                     } else {
+                         setDirection(mousePos.x > cipherScreenX ? 1 : -1);
+                     }
+                 }
+             }
+          }, [mousePos, pos, action, mood, targetAction, speak]);
+
+          // 4. Scroll Surfing
+          const scrollTimeout = useRef(null);
+          const lastScrollY = useRef(0);
+          useEffect(() => {
+              const handleScroll = () => {
+                  const currentScrollY = window.scrollY;
+                  const delta = currentScrollY - lastScrollY.current; 
+                  if (Math.abs(delta) > 15) {
+                    if (action === 'idle' || action === 'walk') {
+                        setAction('surf'); setGear({ hat: false, tool: 'surfboard' }); setPos(prev => ({ x: 92, y: prev.y })); 
+                    }
+                  }
+                  if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+                  scrollTimeout.current = setTimeout(() => {
+                      if (action === 'surf') { setAction('idle'); setGear({ hat: false, tool: null }); setPos(prev => ({ x: 92, y: 80 })); }
+                  }, 150);
+                  lastScrollY.current = currentScrollY;
+              };
+              window.addEventListener('scroll', handleScroll);
+              return () => window.removeEventListener('scroll', handleScroll);
+          }, [action]);
+
+          const handleInteraction = () => {
+              if (mood === 'neutral') {
+                  setMood('angry'); setSystemEffect('red_alert'); 
+                  const phrases = CIPHER_COMMENTS.angry;
+                  speak(phrases[randomInt(0, phrases.length - 1)], true);
+                  setAction('bite');
+                  setTimeout(() => { setAction('idle'); }, 1000);
+              } else {
+                  speak("I WARNED YOU.", true); setSystemEffect('shake'); setAction('bite');
+              }
+          };
+
+          const getTransition = () => {
+              switch(action) {
+                  case 'walk': return `left ${moveDuration}s linear, top ${moveDuration}s linear`; 
+                  case 'panic': return `left ${moveDuration}s linear, top ${moveDuration}s linear`;
+                  case 'jetpack': return 'left 1.2s ease-in-out, top 1.2s ease-in-out';
+                  case 'portal': return 'transform 0.5s ease-in';
+                  case 'matrix': return 'transform 0.5s ease-out';
+                  case 'jump': return 'left 0.8s cubic-bezier(0.4, 0, 0.2, 1), top 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                  case 'surf': return 'top 0.1s linear';
+                  case 'bite': return 'none';
+                  default: return 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+              }
+          };
+
+          return (
+            <div 
+              className={`fixed cursor-pointer w-28 h-28 sm:w-36 sm:h-36 filter drop-shadow-2xl z-[9000] transition-transform ${mood === 'angry' ? 'brightness-90 contrast-125' : ''}`}
+              style={{ left: `${pos.x}%`, top: `${pos.y}%`, transition: getTransition(), transform: `translate(-50%, -50%) scale(${scale})` }}
+              onClick={handleInteraction}
+            >
+              {flash && <div className="fixed inset-0 bg-white z-[9999] animate-flash pointer-events-none opacity-50"></div>}
+
+              {message && (
+                <div className={`absolute left-1/2 transform -translate-x-1/2 bg-black/90 text-green-400 border border-green-500/50 p-3 rounded-xl text-xs font-mono w-48 text-center backdrop-blur-md animate-pop-in z-50 ${pos.y < 20 ? 'top-full mt-4' : '-top-24'}`}>
+                  {message}
+                  {pos.y < 20 ? (
+                      <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-b-[6px] border-b-green-500/50 border-r-[6px] border-r-transparent"></div>
+                  ) : (
+                      <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-green-500/50 border-r-[6px] border-r-transparent"></div>
+                  )}
+                </div>
+              )}
+
+              <svg viewBox="0 0 100 100" className={`w-full h-full overflow-visible transition-transform duration-300 
+                    ${direction === -1 ? 'scale-x-[-1]' : ''} 
+                    ${action === 'walk' ? 'animate-waddle' : ''}
+                    ${action === 'panic' ? 'animate-panic' : ''}
+                    ${action === 'jetpack' ? 'animate-hover' : ''}
+                    ${action === 'jump' ? 'animate-jump-spin' : ''}
+                    ${action === 'surf' ? 'rotate-[-10deg]' : ''}
+                    ${action === 'bite' ? 'animate-lunge' : ''}
+                    ${action === 'repair' || action === 'laptop' || action === 'money' || action === 'phone' || action === 'stamp' ? 'animate-vibrate' : ''}
+                    ${action === 'coffee' || action === 'pizza' ? 'animate-sip' : ''}
+                    ${action === 'matrix' ? 'skew-x-12 scale-y-90' : ''}
+                    ${action === 'dance' ? 'animate-dance' : ''}
+                    ${action === 'portal' || action === 'box' ? 'scale-0 translate-y-20' : ''}
+                    ${action === 'idle' && !gear.tool ? 'animate-float-subtle' : ''}
+              `}>
+                <defs>
+                    <linearGradient id="suitGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#2a2a2a"/><stop offset="100%" stopColor="#050505"/></linearGradient>
+                    <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#333"/><stop offset="50%" stopColor="#111"/><stop offset="100%" stopColor="#000"/></linearGradient>
+                    <filter id="glow"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                </defs>
+
+                {/* --- PROPS --- */}
+                {gear.tool === 'portal' && <ellipse cx="50" cy="95" rx="40" ry="10" fill="black" className="animate-pulse" />}
+                {gear.tool === 'surfboard' && <g transform="translate(50, 95) rotate(10)"><path d="M-40,0 Q0,5 40,0 L35,-5 Q0,0 -35,-5 Z" fill="#4ade80" filter="url(#glow)" /><path d="M-20,-2 L20,-2" stroke="black" strokeWidth="2" strokeDasharray="4,2" /></g>}
+                {gear.tool === 'jetpack' && <g><rect x="25" y="30" width="10" height="40" rx="5" fill="#334155" stroke="#94a3b8" /><rect x="65" y="30" width="10" height="40" rx="5" fill="#334155" stroke="#94a3b8" /><path d="M28,70 L30,90 L32,70 Z" fill="orange" className="animate-pulse" /><path d="M68,70 L70,90 L72,70 Z" fill="orange" className="animate-pulse" /></g>}
+                {gear.tool === 'laptop' && <g transform="translate(20, 60)"><rect x="0" y="0" width="60" height="40" fill="#333" rx="2" /><rect x="5" y="5" width="50" height="30" fill="#22c55e" className="animate-pulse" /><path d="M0,40 L-10,60 L70,60 L60,40 Z" fill="#1f2937" /></g>}
+
+                <g className={`penguin-body ${action === 'matrix' ? 'origin-bottom transition-transform duration-500 -rotate-12' : ''}`}>
+                    {action !== 'portal' && action !== 'box' && <ellipse cx="50" cy="95" rx="30" ry="5" fill="rgba(0,0,0,0.6)" className={`blur-md transition-all ${action === 'jump' || action === 'jetpack' ? 'scale-50 opacity-50 translate-y-8' : ''}`} />}
+                    <path d="M25,90 Q12,90 12,65 Q12,15 50,12 Q88,15 88,65 Q88,90 75,90 Z" fill="url(#suitGradient)" stroke="#000" strokeWidth="1" />
+                    <path d="M28,90 Q22,90 22,65 Q22,30 50,30 Q78,30 78,65 Q78,90 72,90 Z" fill="white" />
+                    <g className={action === 'walk' || action === 'dance' || action === 'panic' || action === 'stamp' ? 'animate-feet-left' : ''}><path d="M25,88 Q15,92 15,98 Q35,100 35,92 Z" fill="#f97316" /></g>
+                    <g className={action === 'walk' || action === 'dance' || action === 'panic' || action === 'stamp' ? 'animate-feet-right' : ''}><path d="M75,88 Q85,92 85,98 Q65,100 65,92 Z" fill="#f97316" /></g>
+                    {gear.tool !== 'newspaper' && gear.tool !== 'box' && gear.tool !== 'laptop' && (
+                        <>
+                        <path d="M15,45 Q5,55 8,70 Q20,60 22,48" fill="url(#suitGradient)" className={`origin-[22px_48px] transition-transform ${gear.tool === 'money_bag' ? 'rotate-[-80deg]' : gear.tool === 'surfboard' ? 'rotate-[-50deg]' : action === 'repair' ? 'rotate-[-20deg]' : action === 'jump' || action === 'jetpack' ? 'rotate-[-110deg]' : action === 'coffee' || action === 'pizza' || gear.tool === 'camera' || gear.tool === 'magnifier' || gear.tool === 'phone' || gear.tool === 'book' ? 'rotate-[-45deg]' : action === 'dance' || action === 'panic' ? 'animate-wave' : action === 'stamp' ? 'rotate-[-45deg]' : ''}`} />
+                        <g className={`origin-[78px_48px] transition-transform ${action === 'repair' || action === 'stamp' ? 'animate-hammer-swing' : gear.tool === 'surfboard' ? 'rotate-[30deg]' : action === 'jump' || action === 'jetpack' ? 'rotate-[110deg]' : action === 'coffee' || action === 'pizza' || gear.tool === 'camera' || gear.tool === 'magnifier' || gear.tool === 'phone' || gear.tool === 'book' ? 'rotate-[45deg]' : action === 'dance' || action === 'panic' ? 'animate-wave' : gear.tool === 'yoyo' ? 'rotate-[0deg]' : gear.tool === 'rod' ? 'rotate-[-20deg]' : gear.tool === 'money_bag' ? 'rotate-[-80deg] animate-vibrate' : ''}`}>
+                            <path d="M85,45 Q95,55 92,70 Q80,60 78,48" fill="url(#suitGradient)" />
+                            {gear.tool === 'wrench' && <g transform="translate(85, 65) rotate(45)"><path d="M0,0 L0,25" stroke="silver" strokeWidth="4" /><path d="M-4,-2 L4,-2 L4,4 L-4,4 Z" fill="silver" /><circle cx="0" cy="25" r="5" fill="none" stroke="silver" strokeWidth="3" /></g>}
+                            {gear.tool === 'stamp' && <g transform="translate(85, 65) rotate(15)"><rect x="-10" y="0" width="20" height="25" fill="#e11d48" /><rect x="-15" y="25" width="30" height="10" fill="#9f1239" /><text x="-12" y="33" fontSize="8" fill="white" fontWeight="bold">NO</text></g>}
+                            {gear.tool === 'coffee' && <g transform="translate(80, 50)"><path d="M0,0 L0,15 Q0,20 5,20 L15,20 Q20,20 20,15 L20,0 Z" fill="#fff" stroke="#ccc" /><path d="M20,5 Q25,5 25,10 Q25,15 20,15" fill="none" stroke="#fff" strokeWidth="2" /><path d="M5,-5 Q10,-10 5,-15" stroke="white" strokeWidth="1" className="animate-float-up opacity-50" /></g>}
+                            {gear.tool === 'pizza' && <g transform="translate(80, 50) rotate(90)"><path d="M0,0 L20,10 L0,20 Z" fill="#f59e0b" stroke="#b45309" /><circle cx="5" cy="10" r="2" fill="#ef4444" /><circle cx="12" cy="8" r="2" fill="#ef4444" /></g>}
+                            {gear.tool === 'phone' && <g transform="translate(80, 50) rotate(-10)"><rect x="0" y="0" width="15" height="25" rx="2" fill="#111" /><rect x="2" y="2" width="11" height="18" fill="#3b82f6" className="animate-pulse" /></g>}
+                            {gear.tool === 'book' && <g transform="translate(80, 50) rotate(-10)"><rect x="0" y="0" width="30" height="20" fill="#fca5a5" stroke="#b91c1c" /><line x1="15" y1="0" x2="15" y2="20" stroke="#b91c1c" /><text x="3" y="12" fontSize="6" fill="#7f1d1d">HTML</text></g>}
+                            {gear.tool === 'yoyo' && <g transform="translate(80, 55)"><line x1="0" y1="0" x2="0" y2="40" stroke="white" strokeWidth="1" className="animate-yoyo-string" /><circle cx="0" cy="40" r="5" fill="#f43f5e" stroke="white" strokeWidth="1" className="animate-yoyo-spin" /></g>}
+                            {gear.tool === 'camera' && <g transform="translate(70, 40) rotate(-45)"><rect x="0" y="0" width="20" height="15" fill="#222" /><circle cx="10" cy="7.5" r="5" fill="#111" stroke="#555" /><rect x="12" y="-3" width="6" height="3" fill="#222" /></g>}
+                            {gear.tool === 'magnifier' && <g transform="translate(75, 50) rotate(-30)"><circle cx="0" cy="0" r="10" fill="rgba(255,255,255,0.3)" stroke="silver" strokeWidth="2" /><line x1="0" y1="10" x2="0" y2="25" stroke="brown" strokeWidth="3" /></g>}
+                            {gear.tool === 'flashlight' && <g transform="translate(80, 60) rotate(-10)"><rect x="0" y="0" width="20" height="8" fill="black" /><path d="M20,0 L25,-5 L25,13 L20,8 Z" fill="silver" /><path d="M25,-5 L55,-15 L55,23 L25,13 Z" fill="yellow" opacity="0.3" /></g>}
+                            {gear.tool === 'rod' && <g transform="translate(85, 50) rotate(-20)"><path d="M0,0 L40,-40" stroke="#8b5cf6" strokeWidth="2" /><path d="M40,-40 Q50,-30 50,100" stroke="white" strokeWidth="1" opacity="0.5" /></g>}
+                            {gear.tool === 'money_bag' && <g transform="translate(50, 80)"><path d="M0,0 Q-15,30 0,40 Q15,30 0,0" fill="#166534" /><text x="-5" y="30" fontSize="16" fill="#86efac" fontWeight="bold">$</text></g>}
+                        </g>
+                        </>
+                    )}
+                    {gear.tool !== 'newspaper' && gear.tool !== 'box' && gear.tool !== 'laptop' && <path d="M50,55 L42,85 L50,92 L58,85 Z" fill="#ef4444" className={`origin-top transition-transform ${gear.tool === 'surfboard' ? 'rotate-[20deg]' : action === 'jetpack' ? 'rotate-[-10deg]' : ''}`} />}
+                </g>
+
+                {(gear.hat || gear.tool === 'flashlight' || gear.tool === 'rod' || gear.tool === 'money_bag') && (
+                    <g transform="translate(50, 10)">
+                        {gear.tool === 'rod' ? (
+                            <path d="M-30,20 Q0,-10 30,20 L35,25 L-35,25 Z" fill="#facc15" stroke="black" strokeWidth="1" />
+                        ) : gear.tool === 'money_bag' ? (
+                            <g transform="translate(0, -5)"><rect x="-25" y="20" width="50" height="5" fill="#111" /><rect x="-15" y="0" width="30" height="20" fill="#111" /><rect x="-15" y="15" width="30" height="3" fill="#166534" /></g>
+                        ) : (
+                            <><path d="M-28,15 Q0,-15 28,15" fill={gear.tool === 'flashlight' ? "#555" : "#fbbf24"} stroke="black" strokeWidth="1" /><rect x="-28" y="15" width="56" height="4" rx="2" fill={gear.tool === 'flashlight' ? "#555" : "#fbbf24"} stroke="black" strokeWidth="1" /></>
+                        )}
+                    </g>
+                )}
+                {gear.tool === 'newspaper' && <g transform="translate(50, 5)"><path d="M-30,15 L30,15 L25,0 L-25,0 Z" fill="#333" /><path d="M-30,15 L30,15" stroke="white" strokeWidth="1" /></g>}
+                {gear.tool === 'box' && <g transform="translate(10, 20)"><rect x="0" y="0" width="80" height="70" fill="#d4a373" stroke="#8b5e3c" strokeWidth="2" /><path d="M0,0 L15,-15 L95,-15 L80,0 Z" fill="#c68c53" stroke="#8b5e3c" strokeWidth="2" /><text x="10" y="30" fontSize="8" fontWeight="bold" fontFamily="monospace" fill="#5c3a1e">TOP SECRET</text><rect x="20" y="50" width="40" height="6" rx="3" fill="#1a1a1a" /><circle cx="30" cy="53" r="1" fill="white" className="animate-pulse" /><circle cx="50" cy="53" r="1" fill="white" className="animate-pulse" /></g>}
+
+                {gear.tool !== 'newspaper' && gear.tool !== 'box' && (
+                    <g transform={action === 'sleep' ? "translate(0, 15)" : "translate(0, 5)"}>
+                        {gear.tool === 'book' && <g><line x1="30" y1="40" x2="70" y2="40" stroke="black" /><circle cx="35" cy="40" r="8" fill="rgba(255,255,255,0.5)" stroke="black" /><circle cx="65" cy="40" r="8" fill="rgba(255,255,255,0.5)" stroke="black" /></g>}
+                        {action !== 'sleep' && gear.tool !== 'book' && (
+                            <g>
+                                <path d="M30,35 L70,35 Q75,35 75,42 Q75,52 65,52 L35,52 Q25,52 25,42 Q25,35 30,35 Z" fill="black" />
+                                {gear.tool === 'money_bag' ? (
+                                    <g fill="#22c55e" fontSize="14" fontWeight="bold" fontFamily="monospace"><text x="30" y="48">$</text><text x="60" y="48">$</text></g>
+                                ) : mood === 'angry' ? (
+                                    <><circle cx="38" cy="42" r="2" fill="red" filter="url(#glow)" className="animate-pulse"/><circle cx="62" cy="42" r="2" fill="red" filter="url(#glow)" className="animate-pulse"/></>
+                                ) : (
+                                    <g className={action === 'idle' ? 'animate-blink' : ''}>
+                                        <path d="M32,37 L47,37 L46,48 L35,48 Q29,48 29,42 Q29,37 32,37" fill="url(#glassGradient)" />
+                                        <path d="M68,37 L53,37 L54,48 L65,48 Q71,48 71,42 Q71,37 68,37" fill="url(#glassGradient)" />
+                                    </g>
+                                )}
+                            </g>
+                        )}
+                        {gear.tool === 'money_bag' ? (
+                            <path d="M42,48 Q50,55 58,48 L50,55 Z" fill="#f97316" stroke="black" strokeWidth="0.5" />
+                        ) : (
+                            <path d="M42,48 Q50,58 58,48 L50,53 Z" fill="#f97316" />
+                        )}
+                        {gear.tool === 'money_bag' && (
+                            <g><circle cx="60" cy="42" r="8" fill="none" stroke="gold" strokeWidth="1" /><line x1="68" y1="42" x2="68" y2="55" stroke="gold" strokeWidth="1" /></g>
+                        )}
+                    </g>
+                )}
+              </svg>
+            </div>
+          );
+        };
+
+        // --- SUB-COMPONENTS ---
+        const NavButton = ({ id, active, icon: Icon, label, onClick, setRef }) => (
+          <button
+            ref={setRef}
+            onClick={() => onClick(id)}
+            className={`group relative flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-500 overflow-hidden ${active ? 'bg-green-500/10 text-green-400 border border-green-500/50 shadow-[0_0_15px_rgba(74,222,128,0.2)]' : 'text-gray-400 hover:text-white border border-transparent hover:border-white/10'}`}
+          >
+            <div className={`absolute inset-0 bg-green-400/5 translate-y-full transition-transform duration-300 ${active ? 'translate-y-0' : 'group-hover:translate-y-0'}`} />
+            <Icon size={18} className={active ? 'animate-pulse' : ''} />
+            <span className="font-mono text-sm tracking-widest uppercase">{label}</span>
+          </button>
+        );
+
+        const GlitchText = ({ text, as: Component = 'h1', className = '' }) => {
+          const [display, setDisplay] = useState(text);
+          useEffect(() => {
+            let interval;
+            if (Math.random() > 0.9) { 
+               const chars = '!@#$%^&*()<>?/';
+               let i = 0;
+               interval = setInterval(() => {
+                 setDisplay(prev => prev.split('').map((char, idx) => {
+                   if (idx < i) return text[idx];
+                   return chars[Math.floor(Math.random() * chars.length)];
+                 }).join(''));
+                 i += 1/3;
+                 if (i >= text.length) clearInterval(interval);
+               }, 50);
+            } else { setDisplay(text); }
+            return () => clearInterval(interval);
+          }, [text]);
+          return <Component className={className}>{display}</Component>;
+        };
+
+        // --- PAGES ---
+        const HomePage = () => (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="text-center space-y-4">
+              <div className="inline-block p-2 rounded-full bg-green-900/20 border border-green-500/30 mb-4 animate-pulse">
+                <span className="text-green-400 text-xs font-mono tracking-[0.3em]">SECURE // ENCRYPTED // UNTRUSTED</span>
+              </div>
+              <GlitchText as="h1" text="TRUST ZERO SYSTEMS" className="text-6xl md:text-8xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+              <p className="text-xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed">
+                We handle your data so you don't have to. <br/><span className="text-xs text-gray-600">(Actually, we just sell it immediately.)</span>
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+              {[
+                { title: "Total Anonymity", icon: Eye, desc: "We delete your logs. After we print them out." },
+                { title: "Military Encryption", icon: Lock, desc: "AES-256? No. We use ROT13. It's vintage." },
+                { title: "Global Surveillance", icon: Globe, desc: "We know you're reading this right now." }
+              ].map((item, i) => (
+                <div key={i} className="group relative p-8 rounded-2xl bg-white/5 border border-white/10 hover:border-green-500/50 transition-all duration-300 hover:-translate-y-2">
+                  <item.icon className="w-12 h-12 text-green-400 mb-6 group-hover:animate-spin-slow" />
+                  <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+        const ServicesPage = ({ triggerEffect }) => {
+          const [scanning, setScanning] = useState(false);
+          const [scanResult, setScanResult] = useState(null);
+          const barRef = useRef(null);
+
+          const startScan = () => {
+            setScanning(true);
+            setScanResult(null);
+            if(barRef.current) triggerEffect('repair', barRef.current.getBoundingClientRect());
+            setTimeout(() => {
+              setScanning(false);
+              setScanResult("THREAT DETECTED: IT IS YOU.");
+            }, 2500);
+          };
+
+          return (
+            <div className="max-w-4xl mx-auto space-y-8">
+              <div className="p-8 rounded-3xl bg-black/40 border border-green-500/20 backdrop-blur-xl relative overflow-hidden">
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-3xl font-bold text-white flex items-center gap-3"><Terminal className="text-green-500" /> System Diagnostics</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="h-40 rounded-xl bg-black/50 border border-white/10 p-4 font-mono text-xs text-green-400 overflow-hidden relative">
+                      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,0,0.1)_1px,transparent_1px)] bg-[size:100%_4px]" />
+                      <p>{'>'} Initializing kernel...</p>
+                      {scanning && (
+                          <>
+                          <p className="animate-pulse text-yellow-400">{'>'} SCANNING BIOMETRICS...</p>
+                          <p className="text-gray-500">{'>'} Applying percussive maintenance...</p>
+                          <div ref={barRef} className="w-full h-4 bg-gray-800 rounded-full mt-4 overflow-hidden border border-white/20">
+                              <div className="h-full bg-green-500 animate-progress origin-left"></div>
+                          </div>
+                          </>
+                      )}
+                      {scanResult && <p className="text-red-500 font-bold mt-2 animate-bounce">{'>'} {scanResult}</p>}
+                    </div>
+                    <button onClick={startScan} onMouseEnter={(e) => triggerEffect('investigate', e.currentTarget.getBoundingClientRect())} className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-500 text-black font-bold uppercase tracking-widest transition-all active:scale-95">
+                      {scanning ? 'Running...' : 'Run Vulnerability Scan'}
+                    </button>
+                  </div>
+                  <div className="space-y-4 text-gray-300">
+                     {['Identity Shield', 'Cloud Vacuum', 'Bio-Lock'].map((t, i) => (
+                         <div key={i} className="flex items-center gap-4 p-4 rounded-lg bg-white/5 border border-white/5 opacity-60"><Lock className="text-gray-500 shrink-0" /><div><h4 className="font-bold text-white">{t}</h4><p className="text-xs mt-1">Feature disabled.</p></div></div>
+                     ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const PricingPage = ({ triggerEffect }) => {
+            const plans = [
+                { name: "Free", price: "$0", features: ["We sell your data", "Weekly spam", "No support"] },
+                { name: "Pro", price: "$99/mo", features: ["We sell your data faster", "Daily spam", "Bot support"] },
+                { name: "Enterprise", price: "$9999", features: ["We sell your data to governments", "Hourly spam", "We ignore you personally"] }
+            ];
+
+            const isClicking = useRef(false);
+
+            const handleSelect = (e) => {
+                isClicking.current = true;
+                const rect = e.currentTarget.getBoundingClientRect();
+                
+                setTimeout(() => {
+                     triggerEffect('money', rect);
+                     setTimeout(() => { isClicking.current = false; }, 1000);
+                }, 50); 
+            };
+
+            const handleHover = (e) => {
+                if (isClicking.current) return;
+                triggerEffect('investigate', e.currentTarget.getBoundingClientRect());
+            };
+
+            return (
+                <div className="space-y-8">
+                    <h2 className="text-4xl font-bold text-white text-center">Extortion Plans</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {plans.map((p, i) => (
+                            <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-green-500 transition-all group relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-2 bg-red-500/20 text-red-500 text-xs font-bold rounded-bl-lg">NO REFUNDS</div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{p.name}</h3>
+                                <div className="text-4xl font-mono text-green-400 mb-4">{p.price}</div>
+                                <ul className="space-y-2 mb-6">
+                                    {p.features.map((f, j) => <li key={j} className="text-gray-400 text-sm flex items-center gap-2"><Check size={14} className="text-green-500"/> {f}</li>)}
+                                </ul>
+                                <button 
+                                    onClick={handleSelect}
+                                    onMouseEnter={handleHover} 
+                                    className="w-full py-2 rounded-lg bg-white/10 hover:bg-green-500 hover:text-black transition-colors font-bold"
+                                >
+                                    SELECT
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const CareersPage = ({ triggerEffect }) => {
+            const [status, setStatus] = useState('idle');
+            const btnRef = useRef(null);
+
+            const handleApply = () => {
+                if(status !== 'idle') return;
+                setStatus('processing');
+                if(btnRef.current) triggerEffect('stamp', btnRef.current.getBoundingClientRect());
+                setTimeout(() => setStatus('rejected'), 1000);
+            };
+
+            return (
+                <div className="max-w-2xl mx-auto space-y-8">
+                    <div className="text-center">
+                        <h2 className="text-4xl font-bold text-white mb-4">Join The Conspiracy</h2>
+                        <p className="text-gray-400">We are looking for scapegoats. I mean, engineers.</p>
+                    </div>
+                    
+                    <div className="p-8 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden">
+                        {status === 'rejected' && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in zoom-in duration-300">
+                                <div className="border-4 border-red-500 text-red-500 font-black text-6xl p-4 rotate-[-15deg] opacity-80">REJECTED</div>
+                            </div>
+                        )}
+                        
+                        <div className="space-y-6">
+                            <div className="flex gap-4">
+                                <div className="flex-1 space-y-2">
+                                    <label className="text-xs uppercase font-bold text-gray-500">Codename</label>
+                                    <input type="text" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white" placeholder="Neo" onInput={() => triggerEffect('typing')} />
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                    <label className="text-xs uppercase font-bold text-gray-500">Crime</label>
+                                    <input type="text" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white" placeholder="Tax Evasion" onInput={() => triggerEffect('typing')} />
+                                </div>
+                            </div>
+                            
+                            <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-green-500/50 transition-colors cursor-pointer group">
+                                <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2 group-hover:text-green-500" />
+                                <p className="text-gray-400 text-sm">Drag & Drop your Soul (PDF)</p>
+                            </div>
+
+                            <button 
+                                ref={btnRef}
+                                onClick={handleApply}
+                                className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-500 text-black font-bold uppercase tracking-widest"
+                            >
+                                SUBMIT APPLICATION
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ContactPage = ({ triggerEffect, onSubmit }) => {
+            const [formData, setFormData] = useState({ name: '', msg: '' });
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                triggerEffect('typing');
+                if (name === 'msg' && value.length > formData.msg.length) {
+                    const sarcastic = "I hereby surrender all my assets to TrustZero. ";
+                    const nextChar = sarcastic[value.length % sarcastic.length];
+                    setFormData(prev => ({ ...prev, [name]: prev.msg + nextChar }));
+                } else {
+                    setFormData(prev => ({ ...prev, [name]: value }));
+                }
+            };
+            return (
+                <div className="max-w-xl mx-auto p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
+                    <h2 className="text-3xl font-bold text-white mb-2">Confess</h2>
+                    <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Identity</label><input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500" placeholder="John Doe"/></div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Message</label><textarea name="msg" value={formData.msg} onChange={handleChange} rows={4} className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500" placeholder="Type your confession..."/></div>
+                        <button onMouseEnter={(e) => triggerEffect('investigate', e.currentTarget.getBoundingClientRect())} className="w-full py-3 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition-colors">SUBMIT</button>
+                    </form>
+                </div>
+            );
+        };
+
+        const SdWanPage = ({ triggerEffect, setForcePhrase, triggerDestruction }) => {
+            const [cliOpen, setCliOpen] = useState(false);
+            const [cliInput, setCliInput] = useState('');
+            const [cliLog, setCliLog] = useState(['> System Ready.']);
+            const containerRef = useRef(null);
+            
+            const nodes = [
+                { id: 'cloud', x: 50, y: 20, icon: Cloud, label: 'INTERNET' },
+                { id: 'hq', x: 20, y: 60, icon: Server, label: 'HQ ROUTER' },
+                { id: 'branch', x: 80, y: 60, icon: Network, label: 'BRANCH SW' },
+            ];
+
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    if (containerRef.current) {
+                        triggerEffect('topology_watch', containerRef.current.getBoundingClientRect());
+                    }
+                }, 1200); 
+                return () => clearTimeout(timer);
+            }, []);
+
+            const handleNodeClick = (node) => {
+                setCliOpen(true);
+                setCliLog(['> Connecting to ' + node.label + '...', '> Access Granted.']);
+                setForcePhrase("One little command to become a hero...");
+            };
+
+            const handleCommand = (e) => {
+                if (e.key === 'Enter') {
+                    const cmd = cliInput.trim().toLowerCase();
+                    const newLog = [...cliLog, `$ ${cliInput}`];
+                    
+                    if (cmd === 'cdp run') {
+                        newLog.push('> EXECUTING GLOBAL PROTOCOL...');
+                        triggerDestruction();
+                        setForcePhrase("WHAT DID YOU DO?!");
+                    } else {
+                        newLog.push('> ERROR: Invalid Command.');
+                        const insults = CIPHER_COMMENTS.wrong_command;
+                        setForcePhrase(insults[randomInt(0, insults.length - 1)]);
+                    }
+                    setCliLog(newLog);
+                    setCliInput('');
+                }
+            };
+
+            return (
+                <div className="h-full relative">
+                    <h2 className="text-3xl font-bold text-white text-center mb-8 flex items-center justify-center gap-2"><Globe className="text-green-500"/> SD-WAN SIMULATOR</h2>
+                    
+                    <div ref={containerRef} className="relative h-96 border border-white/10 rounded-xl bg-black/40 backdrop-blur-sm overflow-hidden">
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                            <line x1="50%" y1="20%" x2="20%" y2="60%" stroke="#333" strokeWidth="2" />
+                            <line x1="50%" y1="20%" x2="80%" y2="60%" stroke="#333" strokeWidth="2" />
+                        </svg>
+
+                        {nodes.map(n => (
+                            <div 
+                                key={n.id}
+                                onClick={() => handleNodeClick(n)}
+                                className="absolute flex flex-col items-center cursor-pointer hover:scale-110 transition-transform group"
+                                style={{ left: `${n.x}%`, top: `${n.y}%`, transform: 'translate(-50%, -50%)' }}
+                            >
+                                <div className="p-4 bg-black border border-green-500 rounded-full shadow-[0_0_15px_rgba(74,222,128,0.3)] group-hover:bg-green-900 transition-colors">
+                                    <n.icon className="text-green-400 w-8 h-8" />
+                                </div>
+                                <span className="mt-2 text-xs font-mono text-green-500 bg-black/80 px-2 rounded">{n.label}</span>
+                            </div>
+                        ))}
+
+                        {cliOpen && (
+                            <div className="absolute inset-x-4 bottom-4 top-1/2 bg-black/95 border border-green-500/50 rounded-lg p-4 font-mono text-xs text-green-400 overflow-hidden flex flex-col shadow-2xl z-50">
+                                <div className="flex justify-between items-center border-b border-green-900 pb-2 mb-2">
+                                    <span>TERMINAL - ROOT ACCESS</span>
+                                    <button onClick={() => setCliOpen(false)}><X size={14}/></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto space-y-1 mb-2">
+                                    {cliLog.map((l, i) => <div key={i}>{l}</div>)}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span>$</span>
+                                    <input 
+                                        autoFocus
+                                        value={cliInput}
+                                        onChange={(e) => setCliInput(e.target.value)}
+                                        onKeyDown={handleCommand}
+                                        className="flex-1 bg-transparent border-none outline-none text-green-400 focus:ring-0" 
+                                        placeholder="Enter command..."
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        const TrustZeroApp = () => {
+          const [activeTab, setActiveTab] = useState('home');
+          const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+          const [cipherTarget, setCipherTarget] = useState(null);
+          const [systemEffect, setSystemEffect] = useState('none'); 
+          const [forcePhrase, setForcePhrase] = useState(null);
+          const bgRef = useRef(null);
+          const navRefs = useRef({});
+
+          const handleTabChange = (newTab) => {
+              const targetNav = navRefs.current[newTab];
+              if (targetNav) setCipherTarget({ type: 'jump', elementRect: targetNav.getBoundingClientRect() });
+              setTimeout(() => setActiveTab(newTab), 300);
+          };
+          
+          const triggerEffect = useCallback((type, rect) => {
+              setCipherTarget(prev => {
+                  if (prev && prev.type === type) return prev;
+                  return { type, elementRect: rect, id: Date.now() }; 
+              });
+          }, []);
+
+          const onActionComplete = useCallback(() => {
+              setCipherTarget(null);
+          }, []);
+
+          const triggerDestruction = () => {
+              setSystemEffect('black_hole');
+              setTimeout(() => setSystemEffect('void'), 14000);
+          };
+
+          const handleConfess = () => {
+              setSystemEffect('police_lights');
+              setForcePhrase("THEY FOUND US!");
+          };
+
+          useEffect(() => {
+              if (systemEffect !== 'none' && systemEffect !== 'black_hole' && systemEffect !== 'void' && systemEffect !== 'police_lights') {
+                  const t = setTimeout(() => setSystemEffect('none'), 1500);
+                  return () => clearTimeout(t);
+              }
+              if (systemEffect === 'police_lights') {
+                  const t = setTimeout(() => setSystemEffect('none'), 3000);
+                  return () => clearTimeout(t);
+              }
+          }, [systemEffect]);
+
+          useEffect(() => {
+            const handleMouseMove = (e) => {
+              setMousePos({ x: e.clientX, y: e.clientY });
+              if (bgRef.current) bgRef.current.style.transform = `translate(-${(e.clientX/window.innerWidth)*20}px, -${(e.clientY/window.innerHeight)*20}px)`;
+            };
+            window.addEventListener('mousemove', handleMouseMove);
+            return () => window.removeEventListener('mousemove', handleMouseMove);
+          }, []);
+
+          if (systemEffect === 'void') {
+              return (
+                  <div className="min-h-screen bg-black flex items-center justify-center text-gray-900 font-mono text-xs">
+                      CONNECTION LOST.
+                  </div>
+              );
+          }
+
+          return (
+            <div className={`min-h-screen bg-black text-white font-sans overflow-hidden selection:bg-green-500 selection:text-black 
+                ${systemEffect === 'shake' || systemEffect === 'red_alert' ? 'animate-shake-screen' : ''}
+                ${systemEffect === 'black_hole' ? 'animate-chaos' : ''}
+                ${systemEffect === 'police_lights' ? 'animate-police-lights' : ''}
+            `}>
+              
+              <div className="fixed inset-0 pointer-events-none z-[100]">
+                  {systemEffect === 'red_alert' && (
+                      <div className="absolute inset-0 bg-red-500/20 animate-pulse flex items-center justify-center">
+                          <div className="text-9xl font-black text-red-500 opacity-20 rotate-[-10deg] animate-ping">LOCKDOWN</div>
+                      </div>
+                  )}
+                  {systemEffect === 'police_lights' && (
+                      <div className="absolute inset-0 bg-blue-500/20 animate-police-flash flex items-center justify-center">
+                          <div className="text-9xl font-black text-white opacity-20 rotate-[10deg] animate-pulse">POLICE</div>
+                      </div>
+                  )}
+                  {systemEffect === 'money_rain' && (
+                      <div className="absolute inset-0 overflow-hidden">
+                          {[...Array(20)].map((_, i) => (
+                              <div key={i} className="absolute text-green-400 text-4xl animate-money-fall" style={{ left: `${Math.random()*100}%`, animationDelay: `${Math.random()}s`, animationDuration: `${1+Math.random()}s` }}>$</div>
+                          ))}
+                      </div>
+                  )}
+                  {systemEffect === 'black_hole' && (
+                      <div className="absolute inset-0 flex items-center justify-center z-[200]">
+                          <div className="w-0 h-0 bg-black rounded-full shadow-[0_0_100px_rgba(0,0,0,1)] animate-black-hole"></div>
+                      </div>
+                  )}
+              </div>
+
+              <div className="fixed inset-0 z-0 pointer-events-none">
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,0,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" ref={bgRef} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-green-900/10" />
+              </div>
+
+              <Cipher 
+                currentTab={activeTab} 
+                mousePos={mousePos} 
+                targetAction={cipherTarget} 
+                onActionComplete={onActionComplete}
+                setSystemEffect={setSystemEffect}
+                forcePhrase={forcePhrase}
+              />
+
+              <div className={`relative z-10 flex flex-col h-screen ${systemEffect === 'black_hole' ? 'animate-suck' : ''}`}>
+                <header className="flex flex-col md:flex-row justify-between items-center p-6 md:px-12 backdrop-blur-sm border-b border-white/5 gap-4">
+                  <div className="flex items-center gap-2 cursor-pointer group">
+                    <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center group-hover:rotate-180 transition-transform duration-500"><Shield className="text-black fill-current" /></div>
+                    <div><h1 className="font-bold tracking-tighter text-lg leading-none">TRUST<br/>ZERO</h1></div>
+                  </div>
+                  <nav className="flex flex-wrap justify-center gap-2 md:gap-4">
+                     {[
+                         {id: 'home', label: 'Dashboard', icon: Globe}, 
+                         {id: 'services', label: 'Protocols', icon: Server}, 
+                         {id: 'pricing', label: 'Extortion', icon: DollarSign},
+                         {id: 'sdwan', label: 'SD-WAN', icon: Network},
+                         {id: 'careers', label: 'Recruitment', icon: Briefcase}, 
+                         {id: 'contact', label: 'Confess', icon: Terminal}
+                     ].map(item => (
+                       <NavButton key={item.id} {...item} active={activeTab === item.id} onClick={handleTabChange} setRef={el => navRefs.current[item.id] = el} />
+                     ))}
+                  </nav>
+                </header>
+
+                <main className="flex-1 overflow-y-auto p-6 md:p-12 relative scrollbar-hide">
+                  <div className="max-w-7xl mx-auto pb-24">
+                     {activeTab === 'home' && <HomePage />}
+                     {activeTab === 'services' && <ServicesPage triggerEffect={triggerEffect} />}
+                     {activeTab === 'pricing' && <PricingPage triggerEffect={(type, rect) => { triggerEffect(type, rect); setSystemEffect('money_rain'); }} />}
+                     {activeTab === 'sdwan' && <SdWanPage triggerEffect={triggerEffect} setForcePhrase={setForcePhrase} triggerDestruction={triggerDestruction} />}
+                     {activeTab === 'careers' && <CareersPage triggerEffect={triggerEffect} />}
+                     {activeTab === 'contact' && <ContactPage triggerEffect={triggerEffect} onSubmit={handleConfess} />}
+                  </div>
+                </main>
+
+                <footer className="border-t border-white/5 bg-black/50 backdrop-blur-md p-4 text-xs font-mono text-gray-500 flex justify-between items-center">
+                   <div className="flex gap-4"><span className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/> SYSTEM: UNSTABLE</span></div>
+                </footer>
+              </div>
+
+              <style>{`
+                /* --- ANIMATIONS --- */
+                @keyframes waddle { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-8px); } }
+                .animate-waddle { animation: waddle 0.5s infinite ease-in-out; }
+                @keyframes jumpSpin { 0% { transform: translateY(0) scale(1,1); } 50% { transform: translateY(-50px) scale(1.1, 0.9); } 100% { transform: translateY(0) scale(1,1); } }
+                .animate-jump-spin { animation: jumpSpin 0.8s ease-in-out; }
+                @keyframes lunge { 0% { transform: scale(1); } 40% { transform: scale(1.4) translateY(-10px); } 100% { transform: scale(1); } }
+                .animate-lunge { animation: lunge 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+                @keyframes floatSubtle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+                .animate-float-subtle { animation: floatSubtle 4s infinite ease-in-out; }
+                @keyframes popIn { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); } 100% { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+                .animate-pop-in { animation: popIn 0.3s forwards; }
+                @keyframes feetLeft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+                .animate-feet-left { animation: feetLeft 0.5s infinite linear; }
+                @keyframes feetRight { 0%, 100% { transform: translateY(-6px); } 50% { transform: translateY(0); } }
+                .animate-feet-right { animation: feetRight 0.5s infinite linear; }
+                @keyframes hammerSwing { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-45deg); } }
+                .animate-hammer-swing { animation: hammerSwing 0.2s infinite; }
+                @keyframes vibrate { 0%, 100% { transform: translate(0,0); } 20% { transform: translate(-1px,1px); } 40% { transform: translate(1px,-1px); } }
+                .animate-vibrate { animation: vibrate 0.1s infinite; }
+                @keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
+                .animate-progress { animation: progress 2.5s linear forwards; }
+                @keyframes floatUp { 0% { transform: translateY(0); opacity: 0.8; } 100% { transform: translateY(-10px); opacity: 0; } }
+                .animate-float-up { animation: floatUp 1.5s infinite linear; }
+                @keyframes sip { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-10deg); } }
+                .animate-sip { animation: sip 2s infinite ease-in-out; }
+                @keyframes hover { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+                .animate-hover { animation: hover 1s infinite ease-in-out; }
+                @keyframes wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-20deg); } }
+                .animate-wave { animation: wave 0.5s infinite ease-in-out; }
+                @keyframes dance { 0% { transform: translateX(0); } 25% { transform: translateX(-10px) rotate(-10deg); } 50% { transform: translateX(0) scale(1.1); } 75% { transform: translateX(10px) rotate(10deg); } 100% { transform: translateX(0); } }
+                .animate-dance { animation: dance 0.8s infinite; }
+                @keyframes yoyoSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .animate-yoyo-spin { animation: yoyoSpin 0.5s linear infinite; }
+                @keyframes yoyoString { 0%, 100% { y2: 40; } 50% { y2: 60; } }
+                .animate-yoyo-string { animation: yoyoString 1s ease-in-out infinite; }
+                @keyframes flash { 0%, 100% { opacity: 0; } 50% { opacity: 0.8; } }
+                .animate-flash { animation: flash 0.2s linear; }
+                @keyframes blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0; } }
+                .animate-blink { animation: blink 4s infinite; }
+                @keyframes moneyFall { 0% { transform: translateY(-50px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+                .animate-money-fall { animation: moneyFall 2s linear forwards; }
+                @keyframes shakeScreen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-5px, 5px); } 75% { transform: translate(5px, -5px); } }
+                .animate-shake-screen { animation: shakeScreen 0.1s infinite; }
+                @keyframes policeFlash { 0%, 100% { background-color: rgba(59, 130, 246, 0.2); } 50% { background-color: rgba(239, 68, 68, 0.2); } }
+                .animate-police-lights { animation: policeFlash 0.5s infinite; }
+                @keyframes chaos { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg) invert(1); transform: rotate(5deg); } }
+                .animate-chaos { animation: chaos 2s infinite linear; }
+                @keyframes blackHole { 0% { width: 0; height: 0; opacity: 0; } 50% { width: 10px; height: 10px; opacity: 1; } 80% { width: 100px; height: 100px; } 100% { width: 300vw; height: 300vw; } }
+                .animate-black-hole { animation: blackHole 8s ease-in forwards 7s; }
+                @keyframes suck { 0% { transform: scale(1) rotate(0deg); } 100% { transform: scale(0) rotate(720deg); opacity: 0; } }
+                .animate-suck { animation: suck 5s ease-in forwards 8s; }
+                .scrollbar-hide::-webkit-scrollbar { display: none; }
+                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                .perspective { perspective: 1000px; }
+                .rotate-y-12 { transform: rotateY(12deg); }
+              `}</style>
+            </div>
+          );
+        };
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<TrustZeroApp />);
     </script>
 </body>
 </html>
-
-// --- UTILS ---
-const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
-const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
-
-// --- DATA: COMMENTARY ---
-const CIPHER_COMMENTS = {
-    home: [
-        "Welcome to the panopticon.", "Nice IP address.", "I see you clicked that.", 
-        "Your webcam light is blinking.", "Secure? Define 'secure'.", "I'm watching you watching me.",
-        "Your password is 'password', isn't it?", "Deleting browser history... jk.", "Act natural.",
-        "This site is a honey pot.", "Big Brother is watching.", "I know what you did last summer."
-    ],
-    services: [
-        "We encrypt nothing.", "Uploading your keystrokes...", "Is this really necessary?", 
-        "Running rm -rf / on your data...", "Encryption is just fancy math.", "We sell your data.",
-        "Our firewall is made of cheese.", "Scanning for intelligence... 0 found.", "404: Privacy not found.",
-        "Buffering your secrets...", "Downloading your RAM..."
-    ],
-    pricing: [
-        "I need a raise.", "Refunds? What are those?", "The 'Free' tier costs your soul.",
-        "That credit card looks valid.", "Small print: We own your house.", "Cash only. Unmarked.",
-        "It's not robbery if you agree.", "Do you really need both kidneys?"
-    ],
-    careers: [
-        "Run. Run while you can.", "The benefits are terrible.", "I'm the only survivor.",
-        "Do you like prison food?", "We pay in exposure.", "Your resume looks flammable.",
-        "Don't do it.", "I was human once.", "The HR department is a shredder."
-    ],
-    sdwan: [
-        "Don't break the internet.", "Route 66 is down.", 
-        "Packets are leaking.", "Latency is just a state of mind.", "The cloud is just someone else's computer."
-    ],
-    contact: [
-        "Traceable? Absolutely.", "Don't leave a paper trail.", "Lawyers are standing by.",
-        "Don't bother, we ignore emails.", "Your message has been pre-rejected.", "Sending to /dev/null...",
-        "Are you sure you want to confess?", "Typing speed: Suspicious.", "We accept bribes in fish."
-    ],
-    button_hover: [
-        "Don't click that.", "Are you sure?", "That button does nothing.", "Risky click.",
-        "I wouldn't if I were you.", "Initiating self-destruct...", "Do it.", "I dare you."
-    ],
-    typing: [
-        "Typing that? Really?", "I'm logging every key.", "Spelling error detected.", 
-        "Keep talking...", "Interesting confession.", "Go on..."
-    ],
-    investigate: [
-        "What is this?", "Suspicious pixel.", "Enhance...", "Looks buggy.", "Smells like malware."
-    ],
-    money: [
-        "Cha-ching!", "I love the sound of capitalism.", "No refunds.", 
-        "Pleasure doing business.", "Sucker.", "We own you now.",
-        "Buying protection? Smart.", "I'm rich!", "Transaction complete."
-    ],
-    angry: [
-        "TARGET LOCKED.", "DEPLOYING DRONES.", "YOU MADE A MISTAKE.", 
-        "TRACING IP...", "LOCK YOUR DOORS.", "SYSTEM PURGE INITIATED."
-    ],
-    panic: [
-        "ABORT!", "EJECT! EJECT!", "TOO CLOSE!", "STRANGER DANGER!", "TACTICAL RETREAT!"
-    ],
-    stealth: [
-        "Nothing to see here.", "I am invisible.", "Tactical box deployed.", "Just a cardboard box."
-    ],
-    wrong_command: [
-        "Syntax error: User incompetent.", "Try again, genius.", "Nope.", "Are you guessing?", "Read the manual.", "Delete System32 instead."
-    ],
-    destruction: [
-        "WHAT DID YOU DO?!", "NOT THAT COMMAND!", "THE SINGULARITY IS HERE!", "I REGRET EVERYTHING!", "MY STOCK PORTFOLIO!!!"
-    ],
-    police: [
-        "THEY FOUND US!", "SCRAMBLE THE DATA!", "IT WASN'T ME!", "I'M JUST A MASCOT!", "WEE-WOO WEE-WOO!"
-    ]
-};
-
-// --- COMPONENT: CIPHER THE PENGUIN ---
-const Cipher = ({ currentTab, mousePos, targetAction, onActionComplete, setSystemEffect, forcePhrase }) => {
-  const [pos, setPos] = useState({ x: 90, y: 90 }); 
-  const [scale, setScale] = useState(1);
-  const [action, setAction] = useState('idle'); 
-  const [message, setMessage] = useState('');
-  const [direction, setDirection] = useState(1); 
-  const [mood, setMood] = useState('neutral'); 
-  const [gear, setGear] = useState({ hat: false, tool: null }); 
-  const [flash, setFlash] = useState(false);
-  const [moveDuration, setMoveDuration] = useState(2); 
-
-  const aiLoop = useRef(null);
-  const lastTalkTime = useRef(0);
-  const angerTimeout = useRef(null);
-  const messageRef = useRef(message);
-  const actionTimer = useRef(null);
-  const prevActionId = useRef(null); 
-
-  useEffect(() => { messageRef.current = message; }, [message]);
-
-  const speak = useCallback((text, force = false, duration = 3500) => {
-      const now = Date.now();
-      if (force || (now - lastTalkTime.current > 3000 && !messageRef.current)) {
-          setMessage(text);
-          lastTalkTime.current = now;
-          setTimeout(() => setMessage(''), duration);
-      }
-  }, []);
-
-  useEffect(() => {
-      if (forcePhrase) speak(forcePhrase, true);
-  }, [forcePhrase, speak]);
-
-  useEffect(() => {
-      if (mood === 'angry') {
-          if (angerTimeout.current) clearTimeout(angerTimeout.current);
-          angerTimeout.current = setTimeout(() => {
-              setMood('neutral');
-              speak("Target lost... resuming patrol.", true);
-              setAction('idle');
-          }, 8000);
-      }
-      return () => clearTimeout(angerTimeout.current);
-  }, [mood, speak]);
-
-  const moveTo = useCallback((newX, newY, mode = 'walk', speedFactor = 1.0) => {
-      const dist = Math.sqrt(Math.pow(newX - pos.x, 2) + Math.pow(newY - pos.y, 2));
-      const baseSpeed = mode === 'panic' ? 0.02 : 0.05; 
-      const speed = baseSpeed / speedFactor; 
-      const duration = Math.max(0.3, dist * speed);
-      
-      setMoveDuration(duration);
-      setDirection(newX > pos.x ? 1 : -1);
-      setPos({ x: newX, y: newY });
-      setAction(mode);
-      
-      return duration * 1000;
-  }, [pos.x, pos.y]);
-
-  // 1. AI Loop
-  useEffect(() => {
-      const runAI = () => {
-          if (['idle', 'walk'].includes(action) && !gear.tool && mood !== 'angry' && action !== 'topology_watch') {
-              const rand = Math.random();
-              
-              if (rand < 0.20) { 
-                  const tabComments = CIPHER_COMMENTS[currentTab] || CIPHER_COMMENTS.home;
-                  speak(tabComments[randomInt(0, tabComments.length - 1)]);
-              } else if (rand < 0.25) {
-                  setAction('pizza'); setGear({ hat: false, tool: 'pizza' });
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4000);
-              } else if (rand < 0.30) {
-                  setAction('read'); setGear({ hat: false, tool: 'book' });
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 5000);
-              } else if (rand < 0.35) {
-                  setAction('phone'); setGear({ hat: false, tool: 'phone' });
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4500);
-              } else if (rand < 0.40) {
-                  setAction('laptop'); setGear({ hat: false, tool: 'laptop' });
-                  speak("Hacking the mainframe...", true);
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 5000);
-              } else if (rand < 0.45) {
-                  setAction('camera'); setGear({ hat: false, tool: 'camera' });
-                  setTimeout(() => setFlash(true), 1500); 
-                  setTimeout(() => setFlash(false), 1700);
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 3000);
-              } else if (rand < 0.50) {
-                  setAction('box'); setGear({ hat: false, tool: 'box' });
-                  speak(CIPHER_COMMENTS.stealth[randomInt(0, CIPHER_COMMENTS.stealth.length-1)], true);
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4000);
-              } else if (rand < 0.55) {
-                  setAction('yoyo'); setGear({ hat: false, tool: 'yoyo' });
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4500);
-              } else if (rand < 0.60) {
-                  setAction('spy'); setGear({ hat: true, tool: 'newspaper' }); 
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4000);
-              } else if (rand < 0.65) {
-                  setAction('flashlight'); setGear({ hat: true, tool: 'flashlight' });
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 4000);
-              } else if (rand < 0.70) {
-                  setAction('dance'); speak("Victory dance.", true);
-                  setTimeout(() => setAction('idle'), 3000);
-              } else if (rand < 0.75 && pos.y > 80) {
-                  setAction('fishing'); setGear({ hat: true, tool: 'rod' });
-                  setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 5000);
-              } else {
-                   const newX = randomInt(10, 90);
-                   const newY = randomInt(10, 80);
-                   const dist = Math.sqrt(Math.pow(newX - pos.x, 2) + Math.pow(newY - pos.y, 2));
-                   if (dist > 50) {
-                       setAction('portal'); setGear({ hat: false, tool: 'portal' });
-                       setTimeout(() => { setPos({ x: newX, y: newY }); setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 1000); }, 800);
-                   } else if (dist > 30) {
-                       setAction('jetpack'); setGear({ hat: false, tool: 'jetpack' }); setDirection(newX > pos.x ? 1 : -1);
-                       setMoveDuration(1.2); 
-                       setTimeout(() => setPos({ x: newX, y: newY }), 200);
-                       setTimeout(() => { setAction('idle'); setGear({ hat: false, tool: null }); }, 1500);
-                   } else {
-                       const duration = moveTo(newX, newY, 'walk');
-                       setTimeout(() => setAction('idle'), duration);
-                   }
-              }
-          }
-      };
-      aiLoop.current = setInterval(runAI, 4000); 
-      return () => clearInterval(aiLoop.current);
-  }, [action, currentTab, gear, pos, mood, speak, moveTo]);
-
-
-  // 2. Handle External Triggers
-  useEffect(() => {
-    if (targetAction) {
-      if (targetAction.id === prevActionId.current) return;
-      prevActionId.current = targetAction.id;
-
-      if (actionTimer.current) clearTimeout(actionTimer.current);
-
-      const { type, elementRect } = targetAction;
-      
-      if (!elementRect && type !== 'typing' && type !== 'police') return;
-
-      const rawX = elementRect ? ((elementRect.left + elementRect.width / 2) / window.innerWidth) * 100 : 0;
-      const rawY = elementRect ? ((elementRect.top) / window.innerHeight) * 100 : 0;
-      const targetX = clamp(rawX, 5, 95);
-      const targetY = clamp(rawY - 8, 5, 90);
-
-      if (type === 'investigate') { 
-         const inspectX = clamp(((elementRect.left / window.innerWidth) * 100) - 8, 2, 90);
-         const inspectY = clamp(((elementRect.top + elementRect.height/2) / window.innerHeight) * 100, 5, 90);
-         
-         const dur = moveTo(inspectX, inspectY, 'walk', 3.0);
-
-         actionTimer.current = setTimeout(() => {
-             setAction('investigate'); setGear({ hat: false, tool: 'magnifier' });
-             const phrases = CIPHER_COMMENTS.button_hover.concat(CIPHER_COMMENTS.investigate);
-             speak(phrases[randomInt(0, phrases.length - 1)]);
-             
-             actionTimer.current = setTimeout(() => { 
-                 setAction('idle'); 
-                 setGear({ hat: false, tool: null }); 
-                 onActionComplete(); 
-             }, 2000);
-         }, dur); 
-
-      } else if (type === 'topology_watch') {
-          const centerX = ((elementRect.left + elementRect.width / 2) / window.innerWidth) * 100;
-          const centerY = ((elementRect.top + elementRect.height / 2) / window.innerHeight) * 100;
-          
-          const dur = moveTo(centerX, centerY - 15, 'walk', 2.0); 
-          
-          actionTimer.current = setTimeout(() => {
-              setAction('topology_watch'); 
-              speak("Only one command can save the world...", true, 5000);
-              actionTimer.current = setTimeout(() => {
-                  onActionComplete();
-              }, 5000);
-          }, dur);
-
-      } else if (type === 'police') {
-          setSystemEffect('police_lights');
-          speak(CIPHER_COMMENTS.police[randomInt(0, CIPHER_COMMENTS.police.length - 1)], true);
-          setAction('panic');
-          setMoveDuration(0.3);
-          
-          const panicRun = (count) => {
-              if (count <= 0) {
-                  setAction('idle');
-                  onActionComplete();
-                  return;
-              }
-              const nextX = randomInt(10, 90);
-              const nextY = randomInt(10, 90);
-              setPos({ x: nextX, y: nextY });
-              actionTimer.current = setTimeout(() => panicRun(count - 1), 400);
-          };
-          panicRun(6);
-
-      } else if (type === 'money') {
-         setAction('jump'); setMoveDuration(0.8); setPos({ x: targetX, y: targetY }); 
-         actionTimer.current = setTimeout(() => {
-             setAction('money'); setGear({ hat: true, tool: 'money_bag' }); 
-             const phrases = CIPHER_COMMENTS.money;
-             speak(phrases[randomInt(0, phrases.length - 1)], true);
-             actionTimer.current = setTimeout(() => { 
-                 setAction('idle'); 
-                 setGear({ hat: false, tool: null }); 
-                 onActionComplete(); 
-             }, 3000);
-         }, 800);
-      } else if (type === 'repair') {
-         const dur = moveTo(targetX, clamp(rawY - 5, 5, 90), 'walk');
-         actionTimer.current = setTimeout(() => {
-             setAction('repair'); setGear({ hat: true, tool: 'wrench' }); setDirection(1);
-             actionTimer.current = setTimeout(() => { setGear({ hat: false, tool: null }); setAction('idle'); onActionComplete(); }, 2500);
-         }, dur);
-      } else if (type === 'jump') {
-         setAction('jump'); setMoveDuration(0.8); setPos({ x: targetX, y: targetY });
-         actionTimer.current = setTimeout(() => { setAction('idle'); onActionComplete(); }, 800);
-      } else if (type === 'typing') {
-          if (Math.random() > 0.6) {
-              const phrases = CIPHER_COMMENTS.typing;
-              speak(phrases[randomInt(0, phrases.length-1)]);
-          }
-      } else if (type === 'stamp') {
-         const dur = moveTo(targetX, targetY, 'walk');
-         actionTimer.current = setTimeout(() => {
-             setAction('stamp'); setGear({ hat: false, tool: 'stamp' }); setDirection(1);
-             actionTimer.current = setTimeout(() => { setGear({ hat: false, tool: null }); setAction('idle'); onActionComplete(); }, 1000);
-         }, dur);
-      }
-    }
-  }, [targetAction, onActionComplete, speak, moveTo]);
-
-  // 3. Cursor Interaction
-  useEffect(() => {
-     if (targetAction || ['topology_watch', 'jump', 'surf', 'bite', 'repair', 'jetpack', 'matrix', 'coffee', 'spy', 'portal', 'box', 'yoyo', 'laptop', 'camera', 'flashlight', 'investigate', 'pizza', 'fishing', 'money', 'read', 'phone', 'panic', 'stamp'].includes(action)) return;
-
-     const cipherScreenX = (pos.x / 100) * window.innerWidth;
-     const cipherScreenY = (pos.y / 100) * window.innerHeight;
-     const dist = Math.sqrt(Math.pow(mousePos.x - cipherScreenX, 2) + Math.pow(mousePos.y - cipherScreenY, 2));
-
-     if (dist < 150) {
-         if (mood === 'angry') {
-             if (dist > 40) {
-                 setAction('walk');
-                 const chaseX = mousePos.x > cipherScreenX ? 4 : -4;
-                 const chaseY = mousePos.y > cipherScreenY ? 4 : -4;
-                 setDirection(mousePos.x > cipherScreenX ? 1 : -1);
-                 setMoveDuration(0.1); 
-                 setPos(prev => ({
-                     x: clamp(prev.x + (chaseX / window.innerWidth * 100), 2, 98),
-                     y: clamp(prev.y + (chaseY / window.innerHeight * 100), 2, 98)
-                 }));
-             } else {
-                 setAction('bite'); speak("CHOMP!", true);
-                 setTimeout(() => { setMood('neutral'); setAction('idle'); }, 600);
-             }
-         } else {
-             const react = Math.random();
-             if (react < 0.4) {
-                 setAction('panic');
-                 speak(CIPHER_COMMENTS.panic[randomInt(0, CIPHER_COMMENTS.panic.length-1)], true);
-                 const escapeDirX = cipherScreenX > mousePos.x ? 15 : -15;
-                 setDirection(escapeDirX > 0 ? -1 : 1);
-                 setMoveDuration(0.5); 
-                 setPos(prev => ({
-                     x: clamp(prev.x + escapeDirX, 5, 95),
-                     y: clamp(prev.y + (cipherScreenY > mousePos.y ? 10 : -10), 5, 95)
-                 }));
-                 setTimeout(() => setAction('idle'), 500);
-             } else if (react < 0.7) {
-                 setAction('matrix'); setDirection(mousePos.x > cipherScreenX ? 1 : -1);
-                 speak("Can't touch this.");
-                 setTimeout(() => { setAction('idle'); }, 1500);
-             } else {
-                 setDirection(mousePos.x > cipherScreenX ? 1 : -1);
-             }
-         }
-     }
-  }, [mousePos, pos, action, mood, targetAction, speak]);
-
-  // 4. Scroll Surfing
-  useEffect(() => {
-      const handleScroll = () => {
-          const currentScrollY = window.scrollY;
-          const delta = currentScrollY - useRef(0).current; 
-          if (Math.abs(delta) > 15) {
-            if (action === 'idle' || action === 'walk') {
-                setAction('surf'); setGear({ hat: false, tool: 'surfboard' }); setPos(prev => ({ x: 92, y: prev.y })); 
-            }
-          }
-          if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-          scrollTimeout.current = setTimeout(() => {
-              if (action === 'surf') { setAction('idle'); setGear({ hat: false, tool: null }); setPos(prev => ({ x: 92, y: 80 })); }
-          }, 150);
-          lastScrollY.current = currentScrollY;
-      };
-      window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
-  }, [action]);
-
-  const handleInteraction = () => {
-      if (mood === 'neutral') {
-          setMood('angry'); setSystemEffect('red_alert'); 
-          const phrases = CIPHER_COMMENTS.angry;
-          speak(phrases[randomInt(0, phrases.length - 1)], true);
-          setAction('bite');
-          setTimeout(() => { setAction('idle'); }, 1000);
-      } else {
-          speak("I WARNED YOU.", true); setSystemEffect('shake'); setAction('bite');
-      }
-  };
-
-  const getTransition = () => {
-      switch(action) {
-          case 'walk': return `left ${moveDuration}s linear, top ${moveDuration}s linear`; 
-          case 'panic': return `left ${moveDuration}s linear, top ${moveDuration}s linear`;
-          case 'jetpack': return 'left 1.2s ease-in-out, top 1.2s ease-in-out';
-          case 'portal': return 'transform 0.5s ease-in';
-          case 'matrix': return 'transform 0.5s ease-out';
-          case 'jump': return 'left 0.8s cubic-bezier(0.4, 0, 0.2, 1), top 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
-          case 'surf': return 'top 0.1s linear';
-          case 'bite': return 'none';
-          default: return 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-      }
-  };
-
-  return (
-    <div 
-      className={`fixed cursor-pointer w-28 h-28 sm:w-36 sm:h-36 filter drop-shadow-2xl z-50 transition-transform ${mood === 'angry' ? 'brightness-90 contrast-125' : ''}`}
-      style={{ left: `${pos.x}%`, top: `${pos.y}%`, transition: getTransition(), transform: `translate(-50%, -50%) scale(${scale})` }}
-      onClick={handleInteraction}
-    >
-      {flash && <div className="fixed inset-0 bg-white z-[9999] animate-flash pointer-events-none opacity-50"></div>}
-
-      {message && (
-        <div className={`absolute left-1/2 transform -translate-x-1/2 bg-black/90 text-green-400 border border-green-500/50 p-3 rounded-xl text-xs font-mono w-48 text-center backdrop-blur-md animate-pop-in z-50 ${pos.y < 20 ? 'top-full mt-4' : '-top-24'}`}>
-          {message}
-          {pos.y < 20 ? (
-              <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-b-[6px] border-b-green-500/50 border-r-[6px] border-r-transparent"></div>
-          ) : (
-              <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-green-500/50 border-r-[6px] border-r-transparent"></div>
-          )}
-        </div>
-      )}
-
-      <svg viewBox="0 0 100 100" className={`w-full h-full overflow-visible transition-transform duration-300 
-            ${direction === -1 ? 'scale-x-[-1]' : ''} 
-            ${action === 'walk' ? 'animate-waddle' : ''}
-            ${action === 'panic' ? 'animate-panic' : ''}
-            ${action === 'jetpack' ? 'animate-hover' : ''}
-            ${action === 'jump' ? 'animate-jump-spin' : ''}
-            ${action === 'surf' ? 'rotate-[-10deg]' : ''}
-            ${action === 'bite' ? 'animate-lunge' : ''}
-            ${action === 'repair' || action === 'laptop' || action === 'money' || action === 'phone' || action === 'stamp' ? 'animate-vibrate' : ''}
-            ${action === 'coffee' || action === 'pizza' ? 'animate-sip' : ''}
-            ${action === 'matrix' ? 'skew-x-12 scale-y-90' : ''}
-            ${action === 'dance' ? 'animate-dance' : ''}
-            ${action === 'portal' || action === 'box' ? 'scale-0 translate-y-20' : ''}
-            ${action === 'idle' && !gear.tool ? 'animate-float-subtle' : ''}
-      `}>
-        <defs>
-            <linearGradient id="suitGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#2a2a2a"/><stop offset="100%" stopColor="#050505"/></linearGradient>
-            <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#333"/><stop offset="50%" stopColor="#111"/><stop offset="100%" stopColor="#000"/></linearGradient>
-            <filter id="glow"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        </defs>
-
-        {/* --- PROPS --- */}
-        {gear.tool === 'portal' && <ellipse cx="50" cy="95" rx="40" ry="10" fill="black" className="animate-pulse" />}
-        {gear.tool === 'surfboard' && <g transform="translate(50, 95) rotate(10)"><path d="M-40,0 Q0,5 40,0 L35,-5 Q0,0 -35,-5 Z" fill="#4ade80" filter="url(#glow)" /><path d="M-20,-2 L20,-2" stroke="black" strokeWidth="2" strokeDasharray="4,2" /></g>}
-        {gear.tool === 'jetpack' && <g><rect x="25" y="30" width="10" height="40" rx="5" fill="#334155" stroke="#94a3b8" /><rect x="65" y="30" width="10" height="40" rx="5" fill="#334155" stroke="#94a3b8" /><path d="M28,70 L30,90 L32,70 Z" fill="orange" className="animate-pulse" /><path d="M68,70 L70,90 L72,70 Z" fill="orange" className="animate-pulse" /></g>}
-        {gear.tool === 'laptop' && <g transform="translate(20, 60)"><rect x="0" y="0" width="60" height="40" fill="#333" rx="2" /><rect x="5" y="5" width="50" height="30" fill="#22c55e" className="animate-pulse" /><path d="M0,40 L-10,60 L70,60 L60,40 Z" fill="#1f2937" /></g>}
-
-        <g className={`penguin-body ${action === 'matrix' ? 'origin-bottom transition-transform duration-500 -rotate-12' : ''}`}>
-            {action !== 'portal' && action !== 'box' && <ellipse cx="50" cy="95" rx="30" ry="5" fill="rgba(0,0,0,0.6)" className={`blur-md transition-all ${action === 'jump' || action === 'jetpack' ? 'scale-50 opacity-50 translate-y-8' : ''}`} />}
-            <path d="M25,90 Q12,90 12,65 Q12,15 50,12 Q88,15 88,65 Q88,90 75,90 Z" fill="url(#suitGradient)" stroke="#000" strokeWidth="1" />
-            <path d="M28,90 Q22,90 22,65 Q22,30 50,30 Q78,30 78,65 Q78,90 72,90 Z" fill="white" />
-            <g className={action === 'walk' || action === 'dance' || action === 'panic' || action === 'stamp' ? 'animate-feet-left' : ''}><path d="M25,88 Q15,92 15,98 Q35,100 35,92 Z" fill="#f97316" /></g>
-            <g className={action === 'walk' || action === 'dance' || action === 'panic' || action === 'stamp' ? 'animate-feet-right' : ''}><path d="M75,88 Q85,92 85,98 Q65,100 65,92 Z" fill="#f97316" /></g>
-            {gear.tool !== 'newspaper' && gear.tool !== 'box' && gear.tool !== 'laptop' && (
-                <>
-                <path d="M15,45 Q5,55 8,70 Q20,60 22,48" fill="url(#suitGradient)" className={`origin-[22px_48px] transition-transform ${gear.tool === 'money_bag' ? 'rotate-[-80deg]' : gear.tool === 'surfboard' ? 'rotate-[-50deg]' : action === 'repair' ? 'rotate-[-20deg]' : action === 'jump' || action === 'jetpack' ? 'rotate-[-110deg]' : action === 'coffee' || action === 'pizza' || gear.tool === 'camera' || gear.tool === 'magnifier' || gear.tool === 'phone' || gear.tool === 'book' ? 'rotate-[-45deg]' : action === 'dance' || action === 'panic' ? 'animate-wave' : action === 'stamp' ? 'rotate-[-45deg]' : ''}`} />
-                <g className={`origin-[78px_48px] transition-transform ${action === 'repair' || action === 'stamp' ? 'animate-hammer-swing' : gear.tool === 'surfboard' ? 'rotate-[30deg]' : action === 'jump' || action === 'jetpack' ? 'rotate-[110deg]' : action === 'coffee' || action === 'pizza' || gear.tool === 'camera' || gear.tool === 'magnifier' || gear.tool === 'phone' || gear.tool === 'book' ? 'rotate-[45deg]' : action === 'dance' || action === 'panic' ? 'animate-wave' : gear.tool === 'yoyo' ? 'rotate-[0deg]' : gear.tool === 'rod' ? 'rotate-[-20deg]' : gear.tool === 'money_bag' ? 'rotate-[-80deg] animate-vibrate' : ''}`}>
-                    <path d="M85,45 Q95,55 92,70 Q80,60 78,48" fill="url(#suitGradient)" />
-                    {gear.tool === 'wrench' && <g transform="translate(85, 65) rotate(45)"><path d="M0,0 L0,25" stroke="silver" strokeWidth="4" /><path d="M-4,-2 L4,-2 L4,4 L-4,4 Z" fill="silver" /><circle cx="0" cy="25" r="5" fill="none" stroke="silver" strokeWidth="3" /></g>}
-                    {gear.tool === 'stamp' && <g transform="translate(85, 65) rotate(15)"><rect x="-10" y="0" width="20" height="25" fill="#e11d48" /><rect x="-15" y="25" width="30" height="10" fill="#9f1239" /><text x="-12" y="33" fontSize="8" fill="white" fontWeight="bold">NO</text></g>}
-                    {gear.tool === 'coffee' && <g transform="translate(80, 50)"><path d="M0,0 L0,15 Q0,20 5,20 L15,20 Q20,20 20,15 L20,0 Z" fill="#fff" stroke="#ccc" /><path d="M20,5 Q25,5 25,10 Q25,15 20,15" fill="none" stroke="#fff" strokeWidth="2" /><path d="M5,-5 Q10,-10 5,-15" stroke="white" strokeWidth="1" className="animate-float-up opacity-50" /></g>}
-                    {gear.tool === 'pizza' && <g transform="translate(80, 50) rotate(90)"><path d="M0,0 L20,10 L0,20 Z" fill="#f59e0b" stroke="#b45309" /><circle cx="5" cy="10" r="2" fill="#ef4444" /><circle cx="12" cy="8" r="2" fill="#ef4444" /></g>}
-                    {gear.tool === 'phone' && <g transform="translate(80, 50) rotate(-10)"><rect x="0" y="0" width="15" height="25" rx="2" fill="#111" /><rect x="2" y="2" width="11" height="18" fill="#3b82f6" className="animate-pulse" /></g>}
-                    {gear.tool === 'book' && <g transform="translate(80, 50) rotate(-10)"><rect x="0" y="0" width="30" height="20" fill="#fca5a5" stroke="#b91c1c" /><line x1="15" y1="0" x2="15" y2="20" stroke="#b91c1c" /><text x="3" y="12" fontSize="6" fill="#7f1d1d">HTML</text></g>}
-                    {gear.tool === 'yoyo' && <g transform="translate(80, 55)"><line x1="0" y1="0" x2="0" y2="40" stroke="white" strokeWidth="1" className="animate-yoyo-string" /><circle cx="0" cy="40" r="5" fill="#f43f5e" stroke="white" strokeWidth="1" className="animate-yoyo-spin" /></g>}
-                    {gear.tool === 'camera' && <g transform="translate(70, 40) rotate(-45)"><rect x="0" y="0" width="20" height="15" fill="#222" /><circle cx="10" cy="7.5" r="5" fill="#111" stroke="#555" /><rect x="12" y="-3" width="6" height="3" fill="#222" /></g>}
-                    {gear.tool === 'magnifier' && <g transform="translate(75, 50) rotate(-30)"><circle cx="0" cy="0" r="10" fill="rgba(255,255,255,0.3)" stroke="silver" strokeWidth="2" /><line x1="0" y1="10" x2="0" y2="25" stroke="brown" strokeWidth="3" /></g>}
-                    {gear.tool === 'flashlight' && <g transform="translate(80, 60) rotate(-10)"><rect x="0" y="0" width="20" height="8" fill="black" /><path d="M20,0 L25,-5 L25,13 L20,8 Z" fill="silver" /><path d="M25,-5 L55,-15 L55,23 L25,13 Z" fill="yellow" opacity="0.3" /></g>}
-                    {gear.tool === 'rod' && <g transform="translate(85, 50) rotate(-20)"><path d="M0,0 L40,-40" stroke="#8b5cf6" strokeWidth="2" /><path d="M40,-40 Q50,-30 50,100" stroke="white" strokeWidth="1" opacity="0.5" /></g>}
-                    {gear.tool === 'money_bag' && <g transform="translate(50, 80)"><path d="M0,0 Q-15,30 0,40 Q15,30 0,0" fill="#166534" /><text x="-5" y="30" fontSize="16" fill="#86efac" fontWeight="bold">$</text></g>}
-                </g>
-                </>
-            )}
-            {gear.tool !== 'newspaper' && gear.tool !== 'box' && gear.tool !== 'laptop' && <path d="M50,55 L42,85 L50,92 L58,85 Z" fill="#ef4444" className={`origin-top transition-transform ${gear.tool === 'surfboard' ? 'rotate-[20deg]' : action === 'jetpack' ? 'rotate-[-10deg]' : ''}`} />}
-        </g>
-
-        {(gear.hat || gear.tool === 'flashlight' || gear.tool === 'rod' || gear.tool === 'money_bag') && (
-            <g transform="translate(50, 10)">
-                {gear.tool === 'rod' ? (
-                    <path d="M-30,20 Q0,-10 30,20 L35,25 L-35,25 Z" fill="#facc15" stroke="black" strokeWidth="1" />
-                ) : gear.tool === 'money_bag' ? (
-                    <g transform="translate(0, -5)"><rect x="-25" y="20" width="50" height="5" fill="#111" /><rect x="-15" y="0" width="30" height="20" fill="#111" /><rect x="-15" y="15" width="30" height="3" fill="#166534" /></g>
-                ) : (
-                    <><path d="M-28,15 Q0,-15 28,15" fill={gear.tool === 'flashlight' ? "#555" : "#fbbf24"} stroke="black" strokeWidth="1" /><rect x="-28" y="15" width="56" height="4" rx="2" fill={gear.tool === 'flashlight' ? "#555" : "#fbbf24"} stroke="black" strokeWidth="1" /></>
-                )}
-            </g>
-        )}
-        {gear.tool === 'newspaper' && <g transform="translate(50, 5)"><path d="M-30,15 L30,15 L25,0 L-25,0 Z" fill="#333" /><path d="M-30,15 L30,15" stroke="white" strokeWidth="1" /></g>}
-        {gear.tool === 'box' && <g transform="translate(10, 20)"><rect x="0" y="0" width="80" height="70" fill="#d4a373" stroke="#8b5e3c" strokeWidth="2" /><path d="M0,0 L15,-15 L95,-15 L80,0 Z" fill="#c68c53" stroke="#8b5e3c" strokeWidth="2" /><text x="10" y="30" fontSize="8" fontWeight="bold" fontFamily="monospace" fill="#5c3a1e">TOP SECRET</text><rect x="20" y="50" width="40" height="6" rx="3" fill="#1a1a1a" /><circle cx="30" cy="53" r="1" fill="white" className="animate-pulse" /><circle cx="50" cy="53" r="1" fill="white" className="animate-pulse" /></g>}
-
-        {gear.tool !== 'newspaper' && gear.tool !== 'box' && (
-            <g transform={action === 'sleep' ? "translate(0, 15)" : "translate(0, 5)"}>
-                {gear.tool === 'book' && <g><line x1="30" y1="40" x2="70" y2="40" stroke="black" /><circle cx="35" cy="40" r="8" fill="rgba(255,255,255,0.5)" stroke="black" /><circle cx="65" cy="40" r="8" fill="rgba(255,255,255,0.5)" stroke="black" /></g>}
-                {action !== 'sleep' && gear.tool !== 'book' && (
-                    <g>
-                        <path d="M30,35 L70,35 Q75,35 75,42 Q75,52 65,52 L35,52 Q25,52 25,42 Q25,35 30,35 Z" fill="black" />
-                        {gear.tool === 'money_bag' ? (
-                            <g fill="#22c55e" fontSize="14" fontWeight="bold" fontFamily="monospace"><text x="30" y="48">$</text><text x="60" y="48">$</text></g>
-                        ) : mood === 'angry' ? (
-                            <><circle cx="38" cy="42" r="2" fill="red" filter="url(#glow)" className="animate-pulse"/><circle cx="62" cy="42" r="2" fill="red" filter="url(#glow)" className="animate-pulse"/></>
-                        ) : (
-                            <g className={action === 'idle' ? 'animate-blink' : ''}>
-                                <path d="M32,37 L47,37 L46,48 L35,48 Q29,48 29,42 Q29,37 32,37" fill="url(#glassGradient)" />
-                                <path d="M68,37 L53,37 L54,48 L65,48 Q71,48 71,42 Q71,37 68,37" fill="url(#glassGradient)" />
-                            </g>
-                        )}
-                    </g>
-                )}
-                {gear.tool === 'money_bag' ? (
-                    <path d="M42,48 Q50,55 58,48 L50,55 Z" fill="#f97316" stroke="black" strokeWidth="0.5" />
-                ) : (
-                    <path d="M42,48 Q50,58 58,48 L50,53 Z" fill="#f97316" />
-                )}
-                {gear.tool === 'money_bag' && (
-                    <g><circle cx="60" cy="42" r="8" fill="none" stroke="gold" strokeWidth="1" /><line x1="68" y1="42" x2="68" y2="55" stroke="gold" strokeWidth="1" /></g>
-                )}
-            </g>
-        )}
-      </svg>
-    </div>
-  );
-};
-
-// --- SUB-COMPONENTS ---
-const NavButton = ({ id, active, icon: Icon, label, onClick, setRef }) => (
-  <button
-    ref={setRef}
-    onClick={() => onClick(id)}
-    className={`group relative flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-500 overflow-hidden ${active ? 'bg-green-500/10 text-green-400 border border-green-500/50 shadow-[0_0_15px_rgba(74,222,128,0.2)]' : 'text-gray-400 hover:text-white border border-transparent hover:border-white/10'}`}
-  >
-    <div className={`absolute inset-0 bg-green-400/5 translate-y-full transition-transform duration-300 ${active ? 'translate-y-0' : 'group-hover:translate-y-0'}`} />
-    <Icon size={18} className={active ? 'animate-pulse' : ''} />
-    <span className="font-mono text-sm tracking-widest uppercase">{label}</span>
-  </button>
-);
-
-const GlitchText = ({ text, as: Component = 'h1', className = '' }) => {
-  const [display, setDisplay] = useState(text);
-  useEffect(() => {
-    let interval;
-    if (Math.random() > 0.9) { 
-       const chars = '!@#$%^&*()<>?/';
-       let i = 0;
-       interval = setInterval(() => {
-         setDisplay(prev => prev.split('').map((char, idx) => {
-           if (idx < i) return text[idx];
-           return chars[Math.floor(Math.random() * chars.length)];
-         }).join(''));
-         i += 1/3;
-         if (i >= text.length) clearInterval(interval);
-       }, 50);
-    } else { setDisplay(text); }
-    return () => clearInterval(interval);
-  }, [text]);
-  return <Component className={className}>{display}</Component>;
-};
-
-// --- PAGES ---
-const HomePage = () => (
-  <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-    <div className="text-center space-y-4">
-      <div className="inline-block p-2 rounded-full bg-green-900/20 border border-green-500/30 mb-4 animate-pulse">
-        <span className="text-green-400 text-xs font-mono tracking-[0.3em]">SECURE // ENCRYPTED // UNTRUSTED</span>
-      </div>
-      <GlitchText as="h1" text="TRUST ZERO SYSTEMS" className="text-6xl md:text-8xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
-      <p className="text-xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed">
-        We handle your data so you don't have to. <br/><span className="text-xs text-gray-600">(Actually, we just sell it immediately.)</span>
-      </p>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
-      {[
-        { title: "Total Anonymity", icon: Eye, desc: "We delete your logs. After we print them out." },
-        { title: "Military Encryption", icon: Lock, desc: "AES-256? No. We use ROT13. It's vintage." },
-        { title: "Global Surveillance", icon: Globe, desc: "We know you're reading this right now." }
-      ].map((item, i) => (
-        <div key={i} className="group relative p-8 rounded-2xl bg-white/5 border border-white/10 hover:border-green-500/50 transition-all duration-300 hover:-translate-y-2">
-          <item.icon className="w-12 h-12 text-green-400 mb-6 group-hover:animate-spin-slow" />
-          <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
-          <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const ServicesPage = ({ triggerEffect }) => {
-  const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
-  const barRef = useRef(null);
-
-  const startScan = () => {
-    setScanning(true);
-    setScanResult(null);
-    if(barRef.current) triggerEffect('repair', barRef.current.getBoundingClientRect());
-    setTimeout(() => {
-      setScanning(false);
-      setScanResult("THREAT DETECTED: IT IS YOU.");
-    }, 2500);
-  };
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div className="p-8 rounded-3xl bg-black/40 border border-green-500/20 backdrop-blur-xl relative overflow-hidden">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-white flex items-center gap-3"><Terminal className="text-green-500" /> System Diagnostics</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <div className="h-40 rounded-xl bg-black/50 border border-white/10 p-4 font-mono text-xs text-green-400 overflow-hidden relative">
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,0,0.1)_1px,transparent_1px)] bg-[size:100%_4px]" />
-              <p>{'>'} Initializing kernel...</p>
-              {scanning && (
-                  <>
-                  <p className="animate-pulse text-yellow-400">{'>'} SCANNING BIOMETRICS...</p>
-                  <p className="text-gray-500">{'>'} Applying percussive maintenance...</p>
-                  <div ref={barRef} className="w-full h-4 bg-gray-800 rounded-full mt-4 overflow-hidden border border-white/20">
-                      <div className="h-full bg-green-500 animate-progress origin-left"></div>
-                  </div>
-                  </>
-              )}
-              {scanResult && <p className="text-red-500 font-bold mt-2 animate-bounce">{'>'} {scanResult}</p>}
-            </div>
-            <button onClick={startScan} onMouseEnter={(e) => triggerEffect('investigate', e.currentTarget.getBoundingClientRect())} className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-500 text-black font-bold uppercase tracking-widest transition-all active:scale-95">
-              {scanning ? 'Running...' : 'Run Vulnerability Scan'}
-            </button>
-          </div>
-          <div className="space-y-4 text-gray-300">
-             {['Identity Shield', 'Cloud Vacuum', 'Bio-Lock'].map((t, i) => (
-                 <div key={i} className="flex items-center gap-4 p-4 rounded-lg bg-white/5 border border-white/5 opacity-60"><Lock className="text-gray-500 shrink-0" /><div><h4 className="font-bold text-white">{t}</h4><p className="text-xs mt-1">Feature disabled.</p></div></div>
-             ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const PricingPage = ({ triggerEffect }) => {
-    const plans = [
-        { name: "Free", price: "$0", features: ["We sell your data", "Weekly spam", "No support"] },
-        { name: "Pro", price: "$99/mo", features: ["We sell your data faster", "Daily spam", "Bot support"] },
-        { name: "Enterprise", price: "$9999", features: ["We sell your data to governments", "Hourly spam", "We ignore you personally"] }
-    ];
-
-    const isClicking = useRef(false);
-
-    const handleSelect = (e) => {
-        isClicking.current = true;
-        const rect = e.currentTarget.getBoundingClientRect();
-        
-        // Immediate trigger for click, but with slight delay to let React render cycle clear
-        setTimeout(() => {
-             triggerEffect('money', rect);
-             // Reset clicking lock after animation start
-             setTimeout(() => { isClicking.current = false; }, 1000);
-        }, 50); 
-    };
-
-    const handleHover = (e) => {
-        if (isClicking.current) return;
-        triggerEffect('investigate', e.currentTarget.getBoundingClientRect());
-    };
-
-    return (
-        <div className="space-y-8">
-            <h2 className="text-4xl font-bold text-white text-center">Extortion Plans</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {plans.map((p, i) => (
-                    <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-green-500 transition-all group relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-2 bg-red-500/20 text-red-500 text-xs font-bold rounded-bl-lg">NO REFUNDS</div>
-                        <h3 className="text-2xl font-bold text-white mb-2">{p.name}</h3>
-                        <div className="text-4xl font-mono text-green-400 mb-4">{p.price}</div>
-                        <ul className="space-y-2 mb-6">
-                            {p.features.map((f, j) => <li key={j} className="text-gray-400 text-sm flex items-center gap-2"><Check size={14} className="text-green-500"/> {f}</li>)}
-                        </ul>
-                        <button 
-                            onClick={handleSelect}
-                            onMouseEnter={handleHover} 
-                            className="w-full py-2 rounded-lg bg-white/10 hover:bg-green-500 hover:text-black transition-colors font-bold"
-                        >
-                            SELECT
-                        </button>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const CareersPage = ({ triggerEffect }) => {
-    const [status, setStatus] = useState('idle');
-    const btnRef = useRef(null);
-
-    const handleApply = () => {
-        if(status !== 'idle') return;
-        setStatus('processing');
-        if(btnRef.current) triggerEffect('stamp', btnRef.current.getBoundingClientRect());
-        setTimeout(() => setStatus('rejected'), 1000);
-    };
-
-    return (
-        <div className="max-w-2xl mx-auto space-y-8">
-            <div className="text-center">
-                <h2 className="text-4xl font-bold text-white mb-4">Join The Conspiracy</h2>
-                <p className="text-gray-400">We are looking for scapegoats. I mean, engineers.</p>
-            </div>
-            
-            <div className="p-8 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden">
-                {status === 'rejected' && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in zoom-in duration-300">
-                        <div className="border-4 border-red-500 text-red-500 font-black text-6xl p-4 rotate-[-15deg] opacity-80">REJECTED</div>
-                    </div>
-                )}
-                
-                <div className="space-y-6">
-                    <div className="flex gap-4">
-                        <div className="flex-1 space-y-2">
-                            <label className="text-xs uppercase font-bold text-gray-500">Codename</label>
-                            <input type="text" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white" placeholder="Neo" onInput={() => triggerEffect('typing')} />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                            <label className="text-xs uppercase font-bold text-gray-500">Crime</label>
-                            <input type="text" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white" placeholder="Tax Evasion" onInput={() => triggerEffect('typing')} />
-                        </div>
-                    </div>
-                    
-                    <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-green-500/50 transition-colors cursor-pointer group">
-                        <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2 group-hover:text-green-500" />
-                        <p className="text-gray-400 text-sm">Drag & Drop your Soul (PDF)</p>
-                    </div>
-
-                    <button 
-                        ref={btnRef}
-                        onClick={handleApply}
-                        className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-500 text-black font-bold uppercase tracking-widest"
-                    >
-                        SUBMIT APPLICATION
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const ContactPage = ({ triggerEffect, onSubmit }) => {
-    const [formData, setFormData] = useState({ name: '', msg: '' });
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        triggerEffect('typing');
-        if (name === 'msg' && value.length > formData.msg.length) {
-            const sarcastic = "I hereby surrender all my assets to TrustZero. ";
-            const nextChar = sarcastic[value.length % sarcastic.length];
-            setFormData(prev => ({ ...prev, [name]: prev.msg + nextChar }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
-        }
-    };
-    return (
-        <div className="max-w-xl mx-auto p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
-            <h2 className="text-3xl font-bold text-white mb-2">Confess</h2>
-            <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
-                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Identity</label><input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500" placeholder="John Doe"/></div>
-                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Message</label><textarea name="msg" value={formData.msg} onChange={handleChange} rows={4} className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500" placeholder="Type your confession..."/></div>
-                <button onMouseEnter={(e) => triggerEffect('investigate', e.currentTarget.getBoundingClientRect())} className="w-full py-3 rounded-lg bg-green-600 text-black font-bold hover:bg-green-500 transition-colors">SUBMIT</button>
-            </form>
-        </div>
-    );
-};
-
-// --- NEW PAGE: SD-WAN EMULATION ---
-const SdWanPage = ({ triggerEffect, setForcePhrase, triggerDestruction }) => {
-    const [cliOpen, setCliOpen] = useState(false);
-    const [cliInput, setCliInput] = useState('');
-    const [cliLog, setCliLog] = useState(['> System Ready.']);
-    const containerRef = useRef(null);
-    
-    // Nodes
-    const nodes = [
-        { id: 'cloud', x: 50, y: 20, icon: Cloud, label: 'INTERNET' },
-        { id: 'hq', x: 20, y: 60, icon: Server, label: 'HQ ROUTER' },
-        { id: 'branch', x: 80, y: 60, icon: Network, label: 'BRANCH SW' },
-    ];
-
-    // Trigger Penguin Move on Mount - DELAYED to fix fast movement issue
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (containerRef.current) {
-                triggerEffect('topology_watch', containerRef.current.getBoundingClientRect());
-            }
-        }, 1200); // Wait 1200ms for jump animation to finish before moving to topology
-        return () => clearTimeout(timer);
-    }, []);
-
-    const handleNodeClick = (node) => {
-        setCliOpen(true);
-        setCliLog(['> Connecting to ' + node.label + '...', '> Access Granted.']);
-        setForcePhrase("One little command to become a hero...");
-    };
-
-    const handleCommand = (e) => {
-        if (e.key === 'Enter') {
-            const cmd = cliInput.trim().toLowerCase();
-            const newLog = [...cliLog, `$ ${cliInput}`];
-            
-            if (cmd === 'cdp run') {
-                newLog.push('> EXECUTING GLOBAL PROTOCOL...');
-                triggerDestruction();
-                setForcePhrase("WHAT DID YOU DO?!");
-            } else {
-                newLog.push('> ERROR: Invalid Command.');
-                const insults = CIPHER_COMMENTS.wrong_command;
-                setForcePhrase(insults[randomInt(0, insults.length - 1)]);
-            }
-            setCliLog(newLog);
-            setCliInput('');
-        }
-    };
-
-    return (
-        <div className="h-full relative">
-            <h2 className="text-3xl font-bold text-white text-center mb-8 flex items-center justify-center gap-2"><Globe className="text-green-500"/> SD-WAN SIMULATOR</h2>
-            
-            <div ref={containerRef} className="relative h-96 border border-white/10 rounded-xl bg-black/40 backdrop-blur-sm overflow-hidden">
-                {/* Lines */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                    <line x1="50%" y1="20%" x2="20%" y2="60%" stroke="#333" strokeWidth="2" />
-                    <line x1="50%" y1="20%" x2="80%" y2="60%" stroke="#333" strokeWidth="2" />
-                </svg>
-
-                {/* Nodes */}
-                {nodes.map(n => (
-                    <div 
-                        key={n.id}
-                        onClick={() => handleNodeClick(n)}
-                        className="absolute flex flex-col items-center cursor-pointer hover:scale-110 transition-transform group"
-                        style={{ left: `${n.x}%`, top: `${n.y}%`, transform: 'translate(-50%, -50%)' }}
-                    >
-                        <div className="p-4 bg-black border border-green-500 rounded-full shadow-[0_0_15px_rgba(74,222,128,0.3)] group-hover:bg-green-900 transition-colors">
-                            <n.icon className="text-green-400 w-8 h-8" />
-                        </div>
-                        <span className="mt-2 text-xs font-mono text-green-500 bg-black/80 px-2 rounded">{n.label}</span>
-                    </div>
-                ))}
-
-                {/* CLI Modal */}
-                {cliOpen && (
-                    <div className="absolute inset-x-4 bottom-4 top-1/2 bg-black/95 border border-green-500/50 rounded-lg p-4 font-mono text-xs text-green-400 overflow-hidden flex flex-col shadow-2xl z-50">
-                        <div className="flex justify-between items-center border-b border-green-900 pb-2 mb-2">
-                            <span>TERMINAL - ROOT ACCESS</span>
-                            <button onClick={() => setCliOpen(false)}><X size={14}/></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto space-y-1 mb-2">
-                            {cliLog.map((l, i) => <div key={i}>{l}</div>)}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span>$</span>
-                            <input 
-                                autoFocus
-                                value={cliInput}
-                                onChange={(e) => setCliInput(e.target.value)}
-                                onKeyDown={handleCommand}
-                                className="flex-1 bg-transparent border-none outline-none text-green-400 focus:ring-0" 
-                                placeholder="Enter command..."
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-// --- MAIN APP ---
-const TrustZeroApp = () => {
-  const [activeTab, setActiveTab] = useState('home');
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [cipherTarget, setCipherTarget] = useState(null);
-  const [systemEffect, setSystemEffect] = useState('none'); 
-  const [forcePhrase, setForcePhrase] = useState(null);
-  const bgRef = useRef(null);
-  const navRefs = useRef({});
-
-  const handleTabChange = (newTab) => {
-      const targetNav = navRefs.current[newTab];
-      if (targetNav) setCipherTarget({ type: 'jump', elementRect: targetNav.getBoundingClientRect() });
-      setTimeout(() => setActiveTab(newTab), 300);
-  };
-  
-  // Wrapped in callback to prevent unnecessary re-renders in child
-  const triggerEffect = useCallback((type, rect) => {
-      setCipherTarget(prev => {
-          // If already targeting, don't overwrite unless it's a new type or significantly different
-          if (prev && prev.type === type) return prev;
-          return { type, elementRect: rect, id: Date.now() }; // ID forces update
-      });
-  }, []);
-
-  const onActionComplete = useCallback(() => {
-      setCipherTarget(null);
-  }, []);
-
-  const triggerDestruction = () => {
-      setSystemEffect('black_hole');
-      setTimeout(() => setSystemEffect('void'), 14000);
-  };
-
-  const handleConfess = () => {
-      setSystemEffect('police_lights');
-      setForcePhrase("THEY FOUND US!");
-  };
-
-  // Clear system effects (except permanent ones)
-  useEffect(() => {
-      if (systemEffect !== 'none' && systemEffect !== 'black_hole' && systemEffect !== 'void' && systemEffect !== 'police_lights') {
-          const t = setTimeout(() => setSystemEffect('none'), 1500);
-          return () => clearTimeout(t);
-      }
-      // Auto clear police lights after 3s
-      if (systemEffect === 'police_lights') {
-          const t = setTimeout(() => setSystemEffect('none'), 3000);
-          return () => clearTimeout(t);
-      }
-  }, [systemEffect]);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-      if (bgRef.current) bgRef.current.style.transform = `translate(-${(e.clientX/window.innerWidth)*20}px, -${(e.clientY/window.innerHeight)*20}px)`;
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  if (systemEffect === 'void') {
-      return (
-          <div className="min-h-screen bg-black flex items-center justify-center text-gray-900 font-mono text-xs">
-              CONNECTION LOST.
-          </div>
-      );
-  }
-
-  return (
-    <div className={`min-h-screen bg-black text-white font-sans overflow-hidden selection:bg-green-500 selection:text-black 
-        ${systemEffect === 'shake' || systemEffect === 'red_alert' ? 'animate-shake-screen' : ''}
-        ${systemEffect === 'black_hole' ? 'animate-chaos' : ''}
-        ${systemEffect === 'police_lights' ? 'animate-police-lights' : ''}
-    `}>
-      
-      {/* Global Effects */}
-      <div className="fixed inset-0 pointer-events-none z-[100]">
-          {systemEffect === 'red_alert' && (
-              <div className="absolute inset-0 bg-red-500/20 animate-pulse flex items-center justify-center">
-                  <div className="text-9xl font-black text-red-500 opacity-20 rotate-[-10deg] animate-ping">LOCKDOWN</div>
-              </div>
-          )}
-          {systemEffect === 'police_lights' && (
-              <div className="absolute inset-0 bg-blue-500/20 animate-police-flash flex items-center justify-center">
-                  <div className="text-9xl font-black text-white opacity-20 rotate-[10deg] animate-pulse">POLICE</div>
-              </div>
-          )}
-          {systemEffect === 'money_rain' && (
-              <div className="absolute inset-0 overflow-hidden">
-                  {[...Array(20)].map((_, i) => (
-                      <div key={i} className="absolute text-green-400 text-4xl animate-money-fall" style={{ left: `${Math.random()*100}%`, animationDelay: `${Math.random()}s`, animationDuration: `${1+Math.random()}s` }}>$</div>
-                  ))}
-              </div>
-          )}
-          {systemEffect === 'black_hole' && (
-              <div className="absolute inset-0 flex items-center justify-center z-[200]">
-                  <div className="w-0 h-0 bg-black rounded-full shadow-[0_0_100px_rgba(0,0,0,1)] animate-black-hole"></div>
-              </div>
-          )}
-      </div>
-
-      <div className="fixed inset-0 z-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,0,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" ref={bgRef} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-green-900/10" />
-      </div>
-
-      <Cipher 
-        currentTab={activeTab} 
-        mousePos={mousePos} 
-        targetAction={cipherTarget} 
-        onActionComplete={onActionComplete}
-        setSystemEffect={setSystemEffect}
-        forcePhrase={forcePhrase}
-      />
-
-      <div className={`relative z-10 flex flex-col h-screen ${systemEffect === 'black_hole' ? 'animate-suck' : ''}`}>
-        <header className="flex flex-col md:flex-row justify-between items-center p-6 md:px-12 backdrop-blur-sm border-b border-white/5 gap-4">
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center group-hover:rotate-180 transition-transform duration-500"><Shield className="text-black fill-current" /></div>
-            <div><h1 className="font-bold tracking-tighter text-lg leading-none">TRUST<br/>ZERO</h1></div>
-          </div>
-          <nav className="flex flex-wrap justify-center gap-2 md:gap-4">
-             {[
-                 {id: 'home', label: 'Dashboard', icon: Globe}, 
-                 {id: 'services', label: 'Protocols', icon: Server}, 
-                 {id: 'pricing', label: 'Extortion', icon: DollarSign},
-                 {id: 'sdwan', label: 'SD-WAN', icon: Network},
-                 {id: 'careers', label: 'Recruitment', icon: Briefcase}, 
-                 {id: 'contact', label: 'Confess', icon: Terminal}
-             ].map(item => (
-               <NavButton key={item.id} {...item} active={activeTab === item.id} onClick={handleTabChange} setRef={el => navRefs.current[item.id] = el} />
-             ))}
-          </nav>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-6 md:p-12 relative scrollbar-hide">
-          <div className="max-w-7xl mx-auto pb-24">
-             {activeTab === 'home' && <HomePage />}
-             {activeTab === 'services' && <ServicesPage triggerEffect={triggerEffect} />}
-             {activeTab === 'pricing' && <PricingPage triggerEffect={(type, rect) => { triggerEffect(type, rect); setSystemEffect('money_rain'); }} />}
-             {activeTab === 'sdwan' && <SdWanPage triggerEffect={triggerEffect} setForcePhrase={setForcePhrase} triggerDestruction={triggerDestruction} />}
-             {activeTab === 'careers' && <CareersPage triggerEffect={triggerEffect} />}
-             {activeTab === 'contact' && <ContactPage triggerEffect={triggerEffect} onSubmit={handleConfess} />}
-          </div>
-        </main>
-
-        <footer className="border-t border-white/5 bg-black/50 backdrop-blur-md p-4 text-xs font-mono text-gray-500 flex justify-between items-center">
-           <div className="flex gap-4"><span className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/> SYSTEM: UNSTABLE</span></div>
-        </footer>
-      </div>
-
-      <style>{`
-        /* --- ANIMATIONS --- */
-        @keyframes waddle { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-8px); } }
-        .animate-waddle { animation: waddle 0.5s infinite ease-in-out; }
-
-        @keyframes jumpSpin { 0% { transform: translateY(0) scale(1,1); } 50% { transform: translateY(-50px) scale(1.1, 0.9); } 100% { transform: translateY(0) scale(1,1); } }
-        .animate-jump-spin { animation: jumpSpin 0.8s ease-in-out; }
-
-        @keyframes lunge { 0% { transform: scale(1); } 40% { transform: scale(1.4) translateY(-10px); } 100% { transform: scale(1); } }
-        .animate-lunge { animation: lunge 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-
-        @keyframes floatSubtle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-        .animate-float-subtle { animation: floatSubtle 4s infinite ease-in-out; }
-
-        @keyframes popIn { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); } 100% { opacity: 1; transform: translate(-50%, 0) scale(1); } }
-        .animate-pop-in { animation: popIn 0.3s forwards; }
-
-        @keyframes feetLeft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-        .animate-feet-left { animation: feetLeft 0.5s infinite linear; }
-        
-        @keyframes feetRight { 0%, 100% { transform: translateY(-6px); } 50% { transform: translateY(0); } }
-        .animate-feet-right { animation: feetRight 0.5s infinite linear; }
-
-        @keyframes hammerSwing { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-45deg); } }
-        .animate-hammer-swing { animation: hammerSwing 0.2s infinite; }
-
-        @keyframes vibrate { 0%, 100% { transform: translate(0,0); } 20% { transform: translate(-1px,1px); } 40% { transform: translate(1px,-1px); } }
-        .animate-vibrate { animation: vibrate 0.1s infinite; }
-
-        @keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
-        .animate-progress { animation: progress 2.5s linear forwards; }
-        
-        @keyframes floatUp { 0% { transform: translateY(0); opacity: 0.8; } 100% { transform: translateY(-10px); opacity: 0; } }
-        .animate-float-up { animation: floatUp 1.5s infinite linear; }
-        
-        @keyframes sip { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-10deg); } }
-        .animate-sip { animation: sip 2s infinite ease-in-out; }
-        
-        @keyframes hover { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        .animate-hover { animation: hover 1s infinite ease-in-out; }
-
-        @keyframes wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-20deg); } }
-        .animate-wave { animation: wave 0.5s infinite ease-in-out; }
-
-        @keyframes dance { 
-            0% { transform: translateX(0); } 
-            25% { transform: translateX(-10px) rotate(-10deg); } 
-            50% { transform: translateX(0) scale(1.1); } 
-            75% { transform: translateX(10px) rotate(10deg); } 
-            100% { transform: translateX(0); } 
-        }
-        .animate-dance { animation: dance 0.8s infinite; }
-        
-        @keyframes yoyoSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .animate-yoyo-spin { animation: yoyoSpin 0.5s linear infinite; }
-
-        @keyframes yoyoString { 0%, 100% { y2: 40; } 50% { y2: 60; } }
-        .animate-yoyo-string { animation: yoyoString 1s ease-in-out infinite; }
-
-        @keyframes flash { 0%, 100% { opacity: 0; } 50% { opacity: 0.8; } }
-        .animate-flash { animation: flash 0.2s linear; }
-        
-        @keyframes blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0; } }
-        .animate-blink { animation: blink 4s infinite; }
-
-        @keyframes moneyFall { 0% { transform: translateY(-50px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
-        .animate-money-fall { animation: moneyFall 2s linear forwards; }
-
-        @keyframes shakeScreen { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-5px, 5px); } 75% { transform: translate(5px, -5px); } }
-        .animate-shake-screen { animation: shakeScreen 0.1s infinite; }
-
-        @keyframes policeFlash { 0%, 100% { background-color: rgba(59, 130, 246, 0.2); } 50% { background-color: rgba(239, 68, 68, 0.2); } }
-        .animate-police-lights { animation: policeFlash 0.5s infinite; }
-
-        /* DESTRUCTION ANIMATIONS */
-        @keyframes chaos { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg) invert(1); transform: rotate(5deg); } }
-        .animate-chaos { animation: chaos 2s infinite linear; }
-
-        @keyframes blackHole { 
-            0% { width: 0; height: 0; opacity: 0; } 
-            50% { width: 10px; height: 10px; opacity: 1; } 
-            80% { width: 100px; height: 100px; } 
-            100% { width: 300vw; height: 300vw; } 
-        }
-        .animate-black-hole { animation: blackHole 8s ease-in forwards 7s; }
-
-        @keyframes suck {
-            0% { transform: scale(1) rotate(0deg); }
-            100% { transform: scale(0) rotate(720deg); opacity: 0; }
-        }
-        .animate-suck { animation: suck 5s ease-in forwards 8s; }
-
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        .perspective { perspective: 1000px; }
-        .rotate-y-12 { transform: rotateY(12deg); }
-      `}</style>
-    </div>
-  );
-};
-
-export default TrustZeroApp;
-
