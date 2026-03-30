@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLASSIFIED // Incident 001</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CRT Scanline effect */
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        .blinking-cursor {
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-black text-green-500 font-mono relative min-h-screen overflow-x-hidden selection:bg-green-500 selection:text-black">
+    <div class="scanlines absolute inset-0 fixed"></div>
+    
+    <main class="relative z-10 max-w-4xl mx-auto p-6 md:p-12 space-y-8">
+        
+        <header class="border-b-2 border-green-900 pb-4 mb-8">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl md:text-5xl font-black tracking-tighter text-red-600 animate-pulse">TOP SECRET // NOFORN</h1>
+                    <p class="text-sm mt-2 text-green-700">TRUST ZERO INTERNAL NETWORK - SECURE NODE 04</p>
+                </div>
+                <div class="text-right text-xs">
+                    <p>DATE: <span id="current-date"></span></p>
+                    <p>AUTH: OSPF AREA 0 OVERRIDE</p>
+                </div>
+            </div>
+        </header>
+
+        <article class="space-y-6 bg-green-950/10 p-6 rounded-lg border border-green-900/50 shadow-[0_0_30px_rgba(0,255,0,0.05)]">
+            <div class="grid grid-cols-2 gap-4 text-sm border-b border-green-900/50 pb-4">
+                <p><span class="font-bold text-gray-500">SUBJECT:</span> ANOMALY-001 ("CIPHER")</p>
+                <p><span class="font-bold text-gray-500">STATUS:</span> <span class="text-red-500 font-bold blink">UNCONTAINED</span></p>
+                <p><span class="font-bold text-gray-500">THREAT LEVEL:</span> CRITICAL (TO PRIVACY)</p>
+                <p><span class="font-bold text-gray-500">LAST SEEN:</span> DROPPING PACKETS ON VLAN 40</p>
+            </div>
+
+            <h2 class="text-xl font-bold bg-green-900 text-black inline-block px-2">INCIDENT SUMMARY</h2>
+            <p class="leading-relaxed">
+                At 0400 hours, an unauthorized entity breached the primary SD-WAN controller. Security Onion alerts triggered massive anomalous lateral movement, but no standard malware signatures were detected. 
+            </p>
+            <p class="leading-relaxed">
+                Instead, physical security cameras revealed an avian construct—codenamed "Cipher"—physically splicing into the fiber backbone using a tiny wrench and drinking the IT department's espresso. 
+            </p>
+
+            <h2 class="text-xl font-bold bg-green-900 text-black inline-block px-2">KNOWN ABILITIES & MODUS OPERANDI</h2>
+            <ul class="list-disc list-inside space-y-2 ml-4 text-green-400">
+                <li><strong class="text-white">The "Cardboard Box" Exploit:</strong> Cipher can evade all Access Control Lists (ACLs) by hiding under a cardboard box. Cisco firewalls currently recognize the box as "trusted traffic."</li>
+                <li><strong class="text-white">Packet Sniffing:</strong> Capable of extracting plaintext passwords simply by staring intensely at the user's cursor.</li>
+                <li><strong class="text-white">Hostile Extortion:</strong> Known to deploy a burlap sack with a dollar sign to forcefully collect "protection fees" for unencrypted data.</li>
+            </ul>
+
+            <h2 class="text-xl font-bold bg-green-900 text-black inline-block px-2">DIRECTIVE TO ALL SYSADMINS</h2>
+            <p class="bg-red-900/20 border-l-4 border-red-600 p-4 text-red-400">
+                DO NOT ATTEMPT TO PET THE PENGUIN. DO NOT TYPE "CDP RUN" IN HIS PRESENCE. IF CIPHER BECOMES ENRAGED, DISCONNECT ALL ETHERNET CABLES AND FLEE THE DATACENTER.
+            </p>
+
+            <div class="mt-8 pt-8 border-t border-green-900/50">
+                <p class="text-xs text-green-700">>> End of log. Connection terminated.<span class="blinking-cursor">_</span></p>
+            </div>
+        </article>
+
+        <div class="text-center pt-12 relative z-20">
+            <a href="index.html" class="inline-block border border-green-500 text-green-500 px-6 py-3 hover:bg-green-500 hover:text-black transition-colors font-bold uppercase tracking-widest">
+                Return to Dashboard
+            </a>
+        </div>
+
+    </main>
+
+    <script>
+        // Set dynamic date for extra realism
+        document.getElementById('current-date').innerText = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
